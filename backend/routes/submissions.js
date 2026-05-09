@@ -118,8 +118,9 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         const extractedFilename = 'extracted_' + file.filename;
         const extractedPath = path.join(__dirname, '..', 'uploads', extractedFilename);
         const scriptPath = path.join(__dirname, '..', '..', 'ml_service', 'extract.py');
+        const pyCmd = process.platform === 'win32' ? 'python' : 'python3';
         try {
-            const { stdout } = await execProc(`python "${scriptPath}" "${inputPath}" "${extractedPath}"`);
+            const { stdout } = await execProc(`${pyCmd} "${scriptPath}" "${inputPath}" "${extractedPath}"`);
             if (stdout.includes('SUCCESS')) {
                 extractedUrl = `/uploads/${extractedFilename}`;
             }
