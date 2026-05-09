@@ -127,7 +127,15 @@ def main():
         if os.name == 'nt':
             pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
             
-        text = pytesseract.image_to_string(image)
+        # Image Enhancement for Messy Handwriting and Phone Shadows
+        gray_ocr = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Isolate ink from shadows using adaptive gaussian binarization
+        thresh_ocr = cv2.adaptiveThreshold(gray_ocr, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 10)
+        
+        # Read the high-contrast ink
+        text = pytesseract.image_to_string(thresh_ocr, config='--psm 3')
+        
         with open(text_out_path, 'w', encoding='utf-8') as f:
             f.write(text.strip())
     except Exception as e:
