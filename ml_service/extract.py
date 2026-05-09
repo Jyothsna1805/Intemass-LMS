@@ -132,7 +132,7 @@ def main():
             f.write(text.strip())
     except Exception as e:
         with open(text_out_path, 'w', encoding='utf-8') as f:
-            f.write("[System Diagnostics: OCR Text Rendering Encountered Process Error - Tesseract OCR Binary may be missing locally]")
+            f.write(f"[AI Extraction OCR Error Logs: {str(e)}]")
             
     print("SUCCESS")
 
