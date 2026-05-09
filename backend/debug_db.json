@@ -1,0 +1,56 @@
+[
+  {
+    "rowid": 9,
+    "id": "a94384ee-a03a-4548-9d1c-c649c9708d35",
+    "topology_json": "{\"y_axis\": true, \"x_axis\": true, \"supply\": true, \"demand\": true, \"equilibrium\": true}",
+    "ocr": "price before tariff = pT\r\n\r\nprice after "
+  },
+  {
+    "rowid": 8,
+    "id": "17ca47f1-074b-4c66-97c4-8c50c2e97512",
+    "topology_json": "{\"y_axis\":true,\"x_axis\":true,\"supply\":false,\"demand\":true,\"equilibrium\":false}",
+    "ocr": "price before tariff = pT\n\nprice after ta"
+  },
+  {
+    "rowid": 7,
+    "id": "8bb61507-c6df-486e-9f3a-39d11a788a18",
+    "topology_json": "{\"y_axis\":true,\"x_axis\":true,\"supply\":true,\"demand\":false,\"equilibrium\":true}",
+    "ocr": "price before tariff = pT\n\nprice after ta"
+  },
+  {
+    "rowid": 6,
+    "id": "cf6d833a-93ae-49cb-a912-69128613e7fb",
+    "topology_json": "{\"y_axis\":true,\"x_axis\":true,\"supply\":false,\"demand\":true,\"equilibrium\":false}",
+    "ocr": "price before tariff = pT\n\nprice after ta"
+  },
+  {
+    "rowid": 5,
+    "id": "c9de89da-9b6c-4a94-ac12-e4b636e55ab5",
+    "topology_json": "{\"y_axis\":true,\"x_axis\":false,\"supply\":true,\"demand\":true,\"equilibrium\":false}",
+    "ocr": "price before tariff = pT\n\nprice after ta"
+  },
+  {
+    "rowid": 4,
+    "id": "b555f1eb-2328-4d8d-b360-ed188ffa5193",
+    "topology_json": "{\"y_axis\":true,\"x_axis\":true,\"supply\":false,\"demand\":true,\"equilibrium\":true}",
+    "ocr": "price before tariff = pT\n\nprice after ta"
+  },
+  {
+    "rowid": 3,
+    "id": "da9330f8-4c17-4ab0-8b68-0d01e8ac8ff0",
+    "topology_json": "{\"y_axis\":true,\"x_axis\":true,\"supply\":true,\"demand\":false,\"equilibrium\":true}",
+    "ocr": "price before tariff = pT\n\nprice after ta"
+  },
+  {
+    "rowid": 2,
+    "id": "ab4f7eb4-4b7d-464b-b5ca-6200add12eaa",
+    "topology_json": "{\"y_axis\":true,\"x_axis\":true,\"supply\":true,\"demand\":true,\"equilibrium\":false}",
+    "ocr": "price before tariff = pT\n\nprice after ta"
+  },
+  {
+    "rowid": 1,
+    "id": "f380f036-1da2-470d-abf0-8ba09c7aff6d",
+    "topology_json": "{\"y_axis\":true,\"x_axis\":true,\"supply\":true,\"demand\":true,\"equilibrium\":false}",
+    "ocr": "price before tariff = pT\n\nprice after ta"
+  }
+]

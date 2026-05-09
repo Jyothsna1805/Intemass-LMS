@@ -1,0 +1,1 @@
+[System Diagnostics: OCR Text Rendering Encountered Process Error - Tesseract OCR Binary may be missing locally]

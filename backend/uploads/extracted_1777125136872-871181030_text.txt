@@ -1,0 +1,10 @@
+price before tariff = pT
+
+price after tariff = (pT-t)+tariffs
+
+
+price and quantity at world equilibrium
+
+price and quantity after imposing tariffs
+
+tariffs increases the government revenue and protects the local producers but it costs the consumer. They have to pay high prices for the goods and overall it affect the economy as a whole.
