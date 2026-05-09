@@ -112,7 +112,7 @@ export default function TeacherMarking() {
                             {submission.extracted_diagram_url && (
                                 <div className="mt-4 bg-green-50 border border-green-200 p-4 shadow-inner">
                                     <h3 className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-2">Automated Diagram Extraction (CV)</h3>
-                                    <img src={`http://localhost:3000${submission.extracted_diagram_url}?t=${Date.now()}`} alt="AI Extracted Graph" className="w-full object-contain bg-white p-2 shadow-sm border border-green-200" />
+                                    <img src={`${submission.extracted_diagram_url}?t=${Date.now()}`} alt="AI Extracted Graph" className="w-full object-contain bg-white p-2 shadow-sm border border-green-200" />
                                 </div>
                             )}
 
@@ -121,7 +121,7 @@ export default function TeacherMarking() {
                                     <span className="text-xs font-bold text-primary-800 uppercase tracking-widest">
                                         Raw Uploaded Document
                                     </span>
-                                    <a href={`http://localhost:3000${submission.file_url}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold bg-primary-600 text-white px-4 py-2 hover:bg-primary-700 uppercase tracking-wider transition">
+                                    <a href={`${submission.file_url}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold bg-primary-600 text-white px-4 py-2 hover:bg-primary-700 uppercase tracking-wider transition">
                                         View Full File
                                     </a>
                                 </div>
