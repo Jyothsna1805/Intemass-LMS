@@ -133,6 +133,13 @@ def main():
         # Isolate ink from shadows using adaptive gaussian binarization
         thresh_ocr = cv2.adaptiveThreshold(gray_ocr, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 10)
         
+        # Erase the graph diagram area to prevent hallucinated line decoding
+        if min_x != 999999 and max_x != 0:
+            cv2.rectangle(thresh_ocr, 
+                         (max(0, min_x - 50), max(0, min_y - 50)), 
+                         (min(image.shape[1], max_x + 50), min(image.shape[0], max_y + 50)), 
+                         (255, 255, 255), -1)
+                         
         # Read the high-contrast ink
         text = pytesseract.image_to_string(thresh_ocr, config='--psm 3')
         
