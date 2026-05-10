@@ -4,7 +4,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Save, Bell, ShoppingCart, Bot } from 'lucide-react';
 
-interface SubmissionDetail { id: string; answer_text: string; marks_awarded: number | null; feedback: string | null; student_name: string; question_text: string; standard_answer: string | null; file_url: string | null; extracted_diagram_url: string | null; ocr_text: string | null; assignment_id: string; max_marks: number | null; topology_json: string | null; }
+interface SubmissionDetail { id: string; answer_text: string; marks_awarded: number | null; feedback: string | null; student_name: string; question_text: string; standard_answer: string | null; file_url: string | null; extracted_diagram_url: string | null; assignment_id: string; max_marks: number | null; topology_json: string | null; }
 
 export default function TeacherMarking() {
     const { id } = useParams() as { id: string };
@@ -99,15 +99,6 @@ export default function TeacherMarking() {
                                     <span className="text-gray-400 italic">No text provided.</span>
                                 )}
                             </div>
-
-                            {submission.ocr_text && (
-                                <div className="mt-4 bg-yellow-50 border border-yellow-200 p-4 shadow-inner">
-                                    <h3 className="text-[10px] font-black text-yellow-700 uppercase tracking-widest mb-2">Automated Handwriting Transcript (OCR)</h3>
-                                    <div className="text-gray-800 font-mono text-xs whitespace-pre-wrap">
-                                        {submission.ocr_text}
-                                    </div>
-                                </div>
-                            )}
 
                             {submission.extracted_diagram_url && (
                                 <div className="mt-4 bg-green-50 border border-green-200 p-4 shadow-inner">
