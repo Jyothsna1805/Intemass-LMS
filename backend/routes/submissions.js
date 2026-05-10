@@ -139,20 +139,55 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
 
     try {
         let submissionId;
+
+        // ------------------ FREE AUTO-GRADING NLP PIPELINE ------------------
+        let marksAwarded = null;
+        let qMaxMarks = 5; // Default capacity fallback
+        let stdAns = "";
+
+        if (process.env.DB_TYPE === 'postgres') {
+            const qResult = await execute("SELECT standard_answer, max_marks FROM questions WHERE id = $1", [questionId]);
+            if (qResult.rows.length > 0) {
+                stdAns = qResult.rows[0].standard_answer || "";
+                qMaxMarks = qResult.rows[0].max_marks || 5;
+            }
+        } else {
+            const qResult = await execute("SELECT standard_answer, max_marks FROM questions WHERE id = ?", [questionId]);
+            if (qResult.length > 0) {
+                stdAns = qResult[0].standard_answer || "";
+                qMaxMarks = qResult[0].max_marks || 5;
+            }
+        }
+
+        const studentFinalText = ocrText ? ocrText.trim() : (answerText ? answerText.trim() : "");
+
+        if (stdAns.trim() && studentFinalText) {
+            const stringSimilarity = require('string-similarity');
+            const similarity = stringSimilarity.compareTwoStrings(stdAns.toLowerCase(), studentFinalText.toLowerCase());
+            marksAwarded = Math.round(similarity * qMaxMarks);
+        }
+        // ----------------------------------------------------------------------
+
         if (process.env.DB_TYPE === 'postgres') {
             const result = await execute(
-                "INSERT INTO submissions(student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-                [req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson]
+                "INSERT INTO submissions(student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, marks_awarded) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+                [req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, marksAwarded]
             );
             submissionId = result.rows[0].id;
+            if (marksAwarded !== null) {
+                await execute("UPDATE submissions SET marked_at = NOW() WHERE id = $1", [submissionId]);
+            }
         } else {
             submissionId = generateId();
             await execute(
-                "INSERT INTO submissions(id, student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [submissionId, req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson]
+                "INSERT INTO submissions(id, student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, marks_awarded) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [submissionId, req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, marksAwarded]
             );
+            if (marksAwarded !== null) {
+                await execute("UPDATE submissions SET marked_at = CURRENT_TIMESTAMP WHERE id = ?", [submissionId]);
+            }
         }
-        res.status(201).json({ message: 'Submitted successfully', submissionId });
+        res.status(201).json({ message: 'Submitted successfully', submissionId, marksAwarded });
     } catch (error) {
         console.error("Error creating submission:", error);
         res.status(500).json({ error: 'Internal server error' });
