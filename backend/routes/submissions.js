@@ -187,7 +187,14 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 await execute("UPDATE submissions SET marked_at = CURRENT_TIMESTAMP WHERE id = ?", [submissionId]);
             }
         }
-        res.status(201).json({ message: 'Submitted successfully', submissionId, marksAwarded });
+        res.status(201).json({
+            message: 'Submitted successfully',
+            submissionId,
+            marksAwarded,
+            ocrText,
+            extractedUrl,
+            topologyJson
+        });
     } catch (error) {
         console.error("Error creating submission:", error);
         res.status(500).json({ error: 'Internal server error' });

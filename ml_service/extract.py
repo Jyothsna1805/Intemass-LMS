@@ -121,30 +121,57 @@ def main():
     # OCR Pipeline for Handwriting Separated Output
     text_out_path = out_path.replace('.png', '_text.txt')
     try:
-        import pytesseract
-        
-        # Cross-platform compatibility for local Windows testing vs Linux Docker clouds
-        if os.name == 'nt':
-            pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-            
-        # Image Enhancement for Messy Handwriting and Phone Shadows
-        gray_ocr = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Isolate ink from shadows using adaptive gaussian binarization
-        thresh_ocr = cv2.adaptiveThreshold(gray_ocr, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 10)
-        
-        # Erase the graph diagram area to prevent hallucinated line decoding
-        if min_x != 999999 and max_x != 0:
-            cv2.rectangle(thresh_ocr, 
-                         (max(0, min_x - 50), max(0, min_y - 50)), 
-                         (min(image.shape[1], max_x + 50), min(image.shape[0], max_y + 50)), 
-                         (255, 255, 255), -1)
-                         
-        # Read the high-contrast ink
-        text = pytesseract.image_to_string(thresh_ocr, config='--psm 3')
-        
+        import requests
+        import base64
+
+        def ocr_space_api(image_data, api_key='helloworld', engine='2'):
+            url = 'https://api.ocr.space/parse/image'
+            image_b64 = base64.b64encode(image_data).decode('utf-8')
+            payload = {
+                'apikey': api_key,
+                'base64Image': f'data:image/png;base64,{image_b64}',
+                'language': 'eng',
+                'OCREngine': engine,
+                'isCreateSearchablePdf': 'false',
+                'isSearchablePdfHideTextLayer': 'true'
+            }
+            response = requests.post(url, data=payload, timeout=30)
+            response.raise_for_status()
+            return response.json()
+
+        # Prepare the full page image for OCR so the actual upload text is extracted
+        full_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        full_threshed = cv2.adaptiveThreshold(full_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                              cv2.THRESH_BINARY, 21, 10)
+        full_threshed = cv2.medianBlur(full_threshed, 3)
+
+        ocr_input_path = out_path.replace('.png', '_ocr.png')
+        cv2.imwrite(ocr_input_path, full_threshed)
+
+        with open(ocr_input_path, 'rb') as f:
+            image_data = f.read()
+
+        result = ocr_space_api(image_data)
+        if 'ParsedResults' in result and result['ParsedResults']:
+            text = result['ParsedResults'][0].get('ParsedText', '').strip()
+        else:
+            error_msg = result.get('ErrorMessage', result.get('error', 'Unknown OCR error'))
+            text = f"[OCR.space API Error: {error_msg}]"
+
+        # Fallback to local OCR if API output is empty or fails
+        if not text.strip():
+            try:
+                import pytesseract
+                ocr_fallback = pytesseract.image_to_string(full_threshed, config='--psm 3')
+                if ocr_fallback.strip():
+                    text = ocr_fallback.strip()
+                else:
+                    text = text or '[No text extracted from OCR.space or fallback]'
+            except Exception:
+                text = text or '[No text extracted from OCR.space and pytesseract fallback unavailable]'
+
         with open(text_out_path, 'w', encoding='utf-8') as f:
-            f.write(text.strip())
+            f.write(text)
             
     except Exception as e:
         with open(text_out_path, 'w', encoding='utf-8') as f:
