@@ -226,6 +226,34 @@ router.patch('/:id/mark', authenticate, authorize('teacher'), async (req, res) =
     }
 });
 
+// Get student's own submissions
+router.get('/student/my_submissions', authenticate, authorize('student'), async (req, res) => {
+    try {
+        let submissions;
+        if (process.env.DB_TYPE === 'postgres') {
+            submissions = await query(`
+                SELECT s.id, s.assignment_id, s.marks_awarded, a.title as assignment_title
+                FROM submissions s
+                JOIN assignments a ON s.assignment_id = a.id
+                WHERE s.student_id = $1
+                ORDER BY s.submitted_at DESC
+            `, [req.user.id]);
+        } else {
+            submissions = await query(`
+                SELECT s.id, s.assignment_id, s.marks_awarded, a.title as assignment_title
+                FROM submissions s
+                JOIN assignments a ON s.assignment_id = a.id
+                WHERE s.student_id = ?
+                ORDER BY s.submitted_at DESC
+            `, [req.user.id]);
+        }
+        res.json(submissions);
+    } catch (error) {
+        console.error("Error fetching student submissions:", error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Retrieve a submission
 router.get('/:id', authenticate, async (req, res) => {
     const { id } = req.params;
