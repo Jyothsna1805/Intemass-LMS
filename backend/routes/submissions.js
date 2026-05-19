@@ -233,18 +233,20 @@ router.get('/:id', authenticate, async (req, res) => {
         let submissionRows;
         if (process.env.DB_TYPE === 'postgres') {
             submissionRows = await query(`
-                SELECT s.*, p.full_name as student_name, q.question_text, q.standard_answer, q.max_marks, s.topology_json 
+                SELECT s.*, p.full_name as student_name, q.question_text, q.standard_answer, q.max_marks, s.topology_json, a.title as assignment_title
                 FROM submissions s
                 JOIN profiles p ON s.student_id = p.user_id
                 JOIN questions q ON s.question_id = q.id 
+                JOIN assignments a ON s.assignment_id = a.id
                 WHERE s.id = $1
             `, [id]);
         } else {
             submissionRows = await query(`
-                SELECT s.*, p.full_name as student_name, q.question_text, q.standard_answer, q.max_marks, s.topology_json 
+                SELECT s.*, p.full_name as student_name, q.question_text, q.standard_answer, q.max_marks, s.topology_json, a.title as assignment_title
                 FROM submissions s
                 JOIN profiles p ON s.student_id = p.user_id
                 JOIN questions q ON s.question_id = q.id 
+                JOIN assignments a ON s.assignment_id = a.id
                 WHERE s.id = ?
             `, [id]);
         }
