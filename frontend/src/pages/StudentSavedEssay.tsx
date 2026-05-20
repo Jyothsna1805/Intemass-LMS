@@ -208,7 +208,7 @@ export default function StudentSavedEssay() {
                             <div className="p-4 w-1/3 text-xs leading-relaxed whitespace-pre-wrap font-serif italic">
                                 {parsedStudentAnswer}
                             </div>
-                            <div className="p-4 w-[calc(66.666%-200px)] space-y-3 text-sm text-green-700 font-bold">
+                            <div className="p-4 w-[calc(66.666%-200px)] space-y-3 text-sm text-gray-800 font-bold">
                                 {standardText}
                             </div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{maxM}</div>
