@@ -49,20 +49,22 @@ export default function StudentSavedEssay() {
 
     // NLP Sentence Diffing Logic
     const rawStudentText = submission.ocr_text ? submission.ocr_text : (submission.answer_text ? submission.answer_text.replace(/<[^>]+>/g, '') : '');
-    const standardSentences = submission.standard_answer ? submission.standard_answer.replace(/<[^>]+>/g, '').split(/(?<=[.!?])\s+/) : [];
+    const standardText = submission.standard_answer ? submission.standard_answer.replace(/<[^>]+>/g, '') : '';
+    
+    const studentSentences = rawStudentText.split(/(?<=[.!?])\s+/);
+    const standardTokens = standardText.toLowerCase().split(/\s+/);
 
-    const parsedActualAnswer = standardSentences.map((sentence, idx) => {
+    const parsedStudentAnswer = studentSentences.map((sentence, idx) => {
         if (!sentence.trim()) return null;
         // Simple NLP boolean intersection (simulating string-similarity matching per phrase)
-        const studentTokens = rawStudentText.toLowerCase().split(/\s+/);
-        const standardTokens = sentence.toLowerCase().split(/\s+/);
-        const matchCount = standardTokens.filter(t => studentTokens.includes(t) && t.length > 3).length;
-        const isMatched = matchCount >= Math.min(2, standardTokens.length / 3);
+        const studentTokens = sentence.toLowerCase().split(/\s+/);
+        const matchCount = studentTokens.filter(t => standardTokens.includes(t) && t.length > 3).length;
+        const isMatched = matchCount >= Math.min(2, studentTokens.length / 3);
 
         return (
-            <div key={idx} className={`mb-2 font-medium text-sm leading-relaxed ${isMatched ? 'text-green-600' : 'text-red-500'}`}>
+            <span key={idx} className={`mr-1 font-bold ${isMatched ? 'text-green-600' : 'text-red-500'}`}>
                 {sentence}
-            </div>
+            </span>
         );
     });
 
@@ -203,11 +205,11 @@ export default function StudentSavedEssay() {
 
                         {/* Content Row */}
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
-                            <div className="p-4 w-1/3 text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
-                                {rawStudentText || "No text provided."}
+                            <div className="p-4 w-1/3 text-xs leading-relaxed whitespace-pre-wrap font-serif italic">
+                                {parsedStudentAnswer}
                             </div>
-                            <div className="p-4 w-[calc(66.666%-200px)] space-y-3 text-sm">
-                                {parsedActualAnswer}
+                            <div className="p-4 w-[calc(66.666%-200px)] space-y-3 text-sm text-green-700 font-bold">
+                                {standardText}
                             </div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{maxM}</div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{scoredM}</div>
