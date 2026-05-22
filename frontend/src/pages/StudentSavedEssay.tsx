@@ -51,20 +51,25 @@ export default function StudentSavedEssay() {
     const rawStudentText = submission.ocr_text ? submission.ocr_text : (submission.answer_text ? submission.answer_text.replace(/<[^>]+>/g, '') : '');
     const standardText = submission.standard_answer ? submission.standard_answer.replace(/<[^>]+>/g, '') : '';
     
-    const studentSentences = rawStudentText.split(/(?<=[.!?])\s+/);
-    const standardTokens = standardText.toLowerCase().split(/\s+/);
+    // Split by newlines or numbered points (e.g. "1. ", "2. ")
+    const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
+    const stdParagraphs = standardText.split(splitRegex).map(p => p.trim()).filter(p => p.length > 0);
+    
+    const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'it', 'its', 'from']);
+    const tokenise = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
+    
+    const studentTokensSet = new Set(tokenise(rawStudentText));
 
-    const parsedStudentAnswer = studentSentences.map((sentence, idx) => {
-        if (!sentence.trim()) return null;
-        // Simple NLP boolean intersection (simulating string-similarity matching per phrase)
-        const studentTokens = sentence.toLowerCase().split(/\s+/);
-        const matchCount = studentTokens.filter(t => standardTokens.includes(t) && t.length > 3).length;
-        const isMatched = matchCount >= Math.min(2, studentTokens.length / 3);
+    const parsedActualAnswer = stdParagraphs.map((para, idx) => {
+        if (!para) return null;
+        const paraTokens = tokenise(para);
+        const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
+        const isMatched = matchedTokens >= Math.min(2, paraTokens.length / 3);
 
         return (
-            <span key={idx} className={`mr-1 font-bold ${isMatched ? 'text-green-600' : 'text-red-500'}`}>
-                {sentence}
-            </span>
+            <div key={idx} className={`mb-3 font-semibold text-sm leading-relaxed ${isMatched ? 'text-green-600' : 'text-red-500'}`}>
+                {para}
+            </div>
         );
     });
 
@@ -205,11 +210,11 @@ export default function StudentSavedEssay() {
 
                         {/* Content Row */}
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
-                            <div className="p-4 w-1/3 text-xs leading-relaxed whitespace-pre-wrap font-serif italic">
-                                {parsedStudentAnswer}
+                            <div className="p-4 w-1/3 text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
+                                {rawStudentText || "No text provided."}
                             </div>
-                            <div className="p-4 w-[calc(66.666%-200px)] space-y-3 text-sm text-gray-800 font-bold">
-                                {standardText}
+                            <div className="p-4 w-[calc(66.666%-200px)] space-y-2">
+                                {parsedActualAnswer}
                             </div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{maxM}</div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{scoredM}</div>
