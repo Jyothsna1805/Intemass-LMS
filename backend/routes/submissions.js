@@ -160,17 +160,20 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         }
 
         const studentFinalText = ocrText ? ocrText.trim() : (answerText ? answerText.trim() : "");
+        
+        let stdAnsClean = stdAns.replace(/<[^>]+>/g, ' ');
+        let studentTextClean = studentFinalText.replace(/<[^>]+>/g, ' ');
 
-        if (stdAns.trim() && studentFinalText) {
+        if (stdAnsClean.trim() && studentTextClean.trim()) {
             // Split by newlines or numbered points (e.g. "1. ", "2. ")
             const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
-            const stdParagraphs = stdAns.split(splitRegex).map(p => p.trim()).filter(p => p.length > 0);
+            const stdParagraphs = stdAnsClean.split(splitRegex).map(p => p.trim()).filter(p => p.length > 0);
             
             if (stdParagraphs.length > 0) {
                 const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'it', 'its', 'from']);
                 const tokenise = (s) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
                 
-                const studentTokensSet = new Set(tokenise(studentFinalText));
+                const studentTokensSet = new Set(tokenise(studentTextClean));
                 let matchCount = 0;
                 
                 for (const para of stdParagraphs) {
