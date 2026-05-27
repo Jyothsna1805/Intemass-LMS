@@ -185,6 +185,33 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                     }
                 }
                 marksAwarded = Math.round((matchCount / stdParagraphs.length) * qMaxMarks);
+
+                // Penalty logic for short factual answers with "shotgun guessing"
+                const stdTokensSet = new Set(tokenise(stdAnsClean));
+                const isShortAnswer = stdTokensSet.size <= 3;
+                if (isShortAnswer && marksAwarded > 0) {
+                    let questionTextStr = "";
+                    if (process.env.DB_TYPE === 'postgres') {
+                        const qRes = await execute("SELECT question_text FROM questions WHERE id = $1", [questionId]);
+                        if (qRes.rows.length > 0) questionTextStr = qRes.rows[0].question_text || "";
+                    } else {
+                        const qRes = await execute("SELECT question_text FROM questions WHERE id = ?", [questionId]);
+                        if (qRes.length > 0) questionTextStr = qRes[0].question_text || "";
+                    }
+                    const questionTextClean = questionTextStr.replace(/<[^>]+>/g, ' ');
+                    const questionTokensSet = new Set(tokenise(questionTextClean));
+                    
+                    let guessingTokensCount = 0;
+                    for (const t of studentTokensSet) {
+                        if (!stdTokensSet.has(t) && !questionTokensSet.has(t)) {
+                            guessingTokensCount++;
+                        }
+                    }
+                    if (guessingTokensCount > 0) {
+                        const penaltyFactor = stdTokensSet.size / (stdTokensSet.size + guessingTokensCount);
+                        marksAwarded = Math.round(marksAwarded * penaltyFactor);
+                    }
+                }
             } else {
                 marksAwarded = 0;
             }

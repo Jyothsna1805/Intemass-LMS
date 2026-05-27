@@ -79,9 +79,27 @@ export default function StudentSavedEssay() {
     const maxM = submission.max_marks || 6;
     
     // Dynamically calculate the score on the frontend so old submissions show the correct partial marks!
-    const dynamicallyCalculatedScore = stdParagraphs.length > 0 
+    let dynamicallyCalculatedScore = stdParagraphs.length > 0 
         ? Math.round((dynamicMatchCount / stdParagraphs.length) * maxM) 
         : 0;
+        
+    // Penalty logic for short factual answers with "shotgun guessing"
+    const stdTokensSet = new Set(tokenise(standardText));
+    const isShortAnswer = stdTokensSet.size <= 3;
+    if (isShortAnswer && dynamicallyCalculatedScore > 0) {
+        const questionText = submission.question_text ? submission.question_text.replace(/<[^>]+>/g, '') : '';
+        const questionTokensSet = new Set(tokenise(questionText));
+        let guessingTokensCount = 0;
+        for (const t of studentTokensSet) {
+            if (!stdTokensSet.has(t) && !questionTokensSet.has(t)) {
+                guessingTokensCount++;
+            }
+        }
+        if (guessingTokensCount > 0) {
+            const penaltyFactor = stdTokensSet.size / (stdTokensSet.size + guessingTokensCount);
+            dynamicallyCalculatedScore = Math.round(dynamicallyCalculatedScore * penaltyFactor);
+        }
+    }
         
     const scoredM = dynamicallyCalculatedScore;
     const cfPercent = ((scoredM / maxM) * 100).toFixed(2);
