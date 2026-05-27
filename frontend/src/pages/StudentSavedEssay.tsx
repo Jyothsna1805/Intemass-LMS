@@ -85,10 +85,11 @@ export default function StudentSavedEssay() {
         
     // Penalty logic for short factual answers with "shotgun guessing"
     const stdTokensSet = new Set(tokenise(standardText));
+    const questionText = submission.question_text ? submission.question_text.replace(/<[^>]+>/g, '') : '';
+    const questionTokensSet = new Set(tokenise(questionText));
+    
     const isShortAnswer = stdTokensSet.size <= 3;
     if (isShortAnswer && dynamicallyCalculatedScore > 0) {
-        const questionText = submission.question_text ? submission.question_text.replace(/<[^>]+>/g, '') : '';
-        const questionTokensSet = new Set(tokenise(questionText));
         let guessingTokensCount = 0;
         for (const t of studentTokensSet) {
             if (!stdTokensSet.has(t) && !questionTokensSet.has(t)) {
@@ -238,7 +239,26 @@ export default function StudentSavedEssay() {
                         {/* Content Row */}
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
                             <div className="p-4 w-1/3 text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
-                                {rawStudentText || "No text provided."}
+                                {rawStudentText ? (
+                                    rawStudentText.split(/(\s+)/).map((wordOrSpace, idx) => {
+                                        if (!wordOrSpace.trim()) {
+                                            return <span key={idx}>{wordOrSpace}</span>;
+                                        }
+                                        const cleanWord = wordOrSpace.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                        if (!cleanWord) return <span key={idx}>{wordOrSpace}</span>;
+                                        
+                                        let colorClass = 'text-gray-800'; // Default black/neutral
+                                        if (stdTokensSet.has(cleanWord)) {
+                                            colorClass = 'text-green-600 font-bold not-italic';
+                                        } else if (stopWords.has(cleanWord) || cleanWord.length <= 3 || (typeof questionTokensSet !== 'undefined' && questionTokensSet.has(cleanWord))) {
+                                            colorClass = 'text-gray-800'; // Neutral
+                                        } else {
+                                            colorClass = 'text-red-500 font-bold not-italic'; // Wrong/Fluff
+                                        }
+                                        
+                                        return <span key={idx} className={colorClass}>{wordOrSpace}</span>;
+                                    })
+                                ) : "No text provided."}
                             </div>
                             <div className="p-4 w-[calc(66.666%-200px)] space-y-2">
                                 {parsedActualAnswer}
@@ -246,7 +266,7 @@ export default function StudentSavedEssay() {
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{maxM}</div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{scoredM}</div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{cfPercent}</div>
-                            <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0 border-r-transparent"></div>
+                            <div className="p-4 w-[50px] text-[10px] text-center font-normal border-l-2 border-black"></div>
                         </div>
                     </div>
                 )}
