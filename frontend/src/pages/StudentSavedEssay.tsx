@@ -70,7 +70,7 @@ export default function StudentSavedEssay() {
         if (isMatched) dynamicMatchCount++;
 
         return (
-            <div key={idx} className={`mb-3 font-semibold text-sm leading-relaxed ${isMatched ? 'text-green-600' : 'text-red-500'}`}>
+            <div key={idx} className="mb-3 font-semibold text-sm leading-relaxed text-gray-800">
                 {para}
             </div>
         );
