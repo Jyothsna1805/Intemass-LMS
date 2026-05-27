@@ -60,11 +60,14 @@ export default function StudentSavedEssay() {
     
     const studentTokensSet = new Set(tokenise(rawStudentText));
 
+    let dynamicMatchCount = 0;
     const parsedActualAnswer = stdParagraphs.map((para, idx) => {
         if (!para) return null;
         const paraTokens = tokenise(para);
         const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
         const isMatched = matchedTokens >= Math.min(2, paraTokens.length / 3);
+
+        if (isMatched) dynamicMatchCount++;
 
         return (
             <div key={idx} className={`mb-3 font-semibold text-sm leading-relaxed ${isMatched ? 'text-green-600' : 'text-red-500'}`}>
@@ -74,7 +77,13 @@ export default function StudentSavedEssay() {
     });
 
     const maxM = submission.max_marks || 6;
-    const scoredM = submission.marks_awarded || 0;
+    
+    // Dynamically calculate the score on the frontend so old submissions show the correct partial marks!
+    const dynamicallyCalculatedScore = stdParagraphs.length > 0 
+        ? Math.round((dynamicMatchCount / stdParagraphs.length) * maxM) 
+        : 0;
+        
+    const scoredM = dynamicallyCalculatedScore;
     const cfPercent = ((scoredM / maxM) * 100).toFixed(2);
 
     return (
