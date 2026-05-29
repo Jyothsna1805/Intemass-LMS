@@ -17,6 +17,10 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+# Download ML models for NLP grading during build step to save runtime
+RUN python3 -m spacy download en_core_web_sm
+RUN python3 -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('wordnet'); nltk.download('stopwords'); nltk.download('brown'); nltk.download('omw-1.4');"
+
 # Copy all project structures
 COPY . .
 

@@ -161,67 +161,58 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
 
         const studentFinalText = ocrText ? ocrText.trim() : (answerText ? answerText.trim() : "");
         
-        let stdAnsClean = stdAns.replace(/<[^>]+>/g, ' ');
-        let studentTextClean = studentFinalText.replace(/<[^>]+>/g, ' ');
+        let stdAnsClean = stdAns.replace(/<[^>]+>/g, ' ').trim();
+        let studentTextClean = studentFinalText.replace(/<[^>]+>/g, ' ').trim();
 
-        if (stdAnsClean.trim() && studentTextClean.trim()) {
-            // Split by newlines or numbered points (e.g. "1. ", "2. ")
-            const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
-            const stdParagraphs = stdAnsClean.split(splitRegex).map(p => p.trim()).filter(p => p.length > 0);
+        if (stdAnsClean && studentTextClean) {
+            const { execFile } = require('child_process');
+            const path = require('path');
             
-            if (stdParagraphs.length > 0) {
-                const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'it', 'its', 'from']);
-                const tokenise = (s) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
+            const pythonResult = await new Promise((resolve) => {
+                const pythonArgs = [
+                    path.join(__dirname, '../grading_engine.py'),
+                    JSON.stringify({
+                        student_answer: studentTextClean,
+                        model_answer: stdAnsClean,
+                        max_marks: qMaxMarks
+                    })
+                ];
                 
-                const studentTokensSet = new Set(tokenise(studentTextClean));
-                let matchCount = 0;
-                
-                for (const para of stdParagraphs) {
-                    const paraTokens = tokenise(para);
-                    const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
-                    const isMatched = matchedTokens >= Math.min(2, paraTokens.length / 3);
-                    if (isMatched) {
-                        matchCount++;
-                    }
-                }
-                marksAwarded = Math.round((matchCount / stdParagraphs.length) * qMaxMarks);
-
-                // Penalty logic for short factual answers with "shotgun guessing"
-                const stdTokensSet = new Set(tokenise(stdAnsClean));
-                const isShortAnswer = stdTokensSet.size <= 3;
-                if (isShortAnswer && marksAwarded > 0) {
-                    let questionTextStr = "";
-                    if (process.env.DB_TYPE === 'postgres') {
-                        const qRes = await execute("SELECT question_text FROM questions WHERE id = $1", [questionId]);
-                        if (qRes.rows.length > 0) questionTextStr = qRes.rows[0].question_text || "";
+                execFile('python3', pythonArgs, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error('Python Error:', error);
+                        console.error('Stderr:', stderr);
+                        resolve({ score: 0, feedback: null });
                     } else {
-                        const qRes = await execute("SELECT question_text FROM questions WHERE id = ?", [questionId]);
-                        if (qRes.length > 0) questionTextStr = qRes[0].question_text || "";
-                    }
-                    const questionTextClean = questionTextStr.replace(/<[^>]+>/g, ' ');
-                    const questionTokensSet = new Set(tokenise(questionTextClean));
-                    
-                    let guessingTokensCount = 0;
-                    for (const t of studentTokensSet) {
-                        if (!stdTokensSet.has(t) && !questionTokensSet.has(t)) {
-                            guessingTokensCount++;
+                        try {
+                            const parsed = JSON.parse(stdout);
+                            if (parsed.success && parsed.data) {
+                                resolve({ score: parsed.data.score, feedback: JSON.stringify(parsed.data) });
+                            } else {
+                                console.error('Python Script Error:', parsed.error);
+                                resolve({ score: 0, feedback: null });
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse Python stdout:', stdout);
+                            resolve({ score: 0, feedback: null });
                         }
                     }
-                    if (guessingTokensCount > 0) {
-                        const penaltyFactor = stdTokensSet.size / (stdTokensSet.size + guessingTokensCount);
-                        marksAwarded = Math.round(marksAwarded * penaltyFactor);
-                    }
-                }
-            } else {
-                marksAwarded = 0;
-            }
+                });
+            });
+            
+            marksAwarded = pythonResult.score;
+            // Store feedback in the feedback column if it exists in schema
+            var advancedFeedback = pythonResult.feedback;
+        } else {
+            marksAwarded = 0;
+            var advancedFeedback = null;
         }
         // ----------------------------------------------------------------------
 
         if (process.env.DB_TYPE === 'postgres') {
             const result = await execute(
-                "INSERT INTO submissions(student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, marks_awarded) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
-                [req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, marksAwarded]
+                "INSERT INTO submissions(student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, feedback, marks_awarded) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
+                [req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, advancedFeedback, marksAwarded]
             );
             submissionId = result.rows[0].id;
             if (marksAwarded !== null) {
@@ -230,13 +221,14 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         } else {
             submissionId = generateId();
             await execute(
-                "INSERT INTO submissions(id, student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, marks_awarded) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [submissionId, req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, marksAwarded]
+                "INSERT INTO submissions(id, student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, feedback, marks_awarded) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [submissionId, req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, advancedFeedback, marksAwarded]
             );
             if (marksAwarded !== null) {
                 await execute("UPDATE submissions SET marked_at = CURRENT_TIMESTAMP WHERE id = ?", [submissionId]);
             }
         }
+
         res.status(201).json({
             message: 'Submitted successfully',
             submissionId,
