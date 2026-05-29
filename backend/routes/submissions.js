@@ -165,44 +165,74 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         let studentTextClean = studentFinalText.replace(/<[^>]+>/g, ' ').trim();
 
         if (stdAnsClean && studentTextClean) {
-            const { execFile } = require('child_process');
-            const path = require('path');
+            const hfUrl = process.env.HF_GRADING_API_URL;
+            let pythonResult = { score: null, feedback: null };
             
-            const pythonResult = await new Promise((resolve) => {
-                const pythonArgs = [
-                    path.join(__dirname, '../grading_engine.py'),
-                    JSON.stringify({
-                        student_answer: studentTextClean,
-                        model_answer: stdAnsClean,
-                        max_marks: qMaxMarks
-                    })
-                ];
-                
-                execFile('python3', pythonArgs, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
-                    if (error) {
-                        console.error('Python Error:', error);
-                        console.error('Stderr:', stderr);
-                        resolve({ score: 0, feedback: null });
+            if (hfUrl) {
+                try {
+                    const response = await fetch(hfUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            student_answer: studentTextClean,
+                            model_answer: stdAnsClean,
+                            max_marks: qMaxMarks
+                        })
+                    });
+                    const parsed = await response.json();
+                    if (parsed.success && parsed.data) {
+                        pythonResult = { score: parsed.data.score, feedback: JSON.stringify(parsed.data) };
                     } else {
-                        try {
-                            const parsed = JSON.parse(stdout);
-                            if (parsed.success && parsed.data) {
-                                resolve({ score: parsed.data.score, feedback: JSON.stringify(parsed.data) });
-                            } else {
-                                console.error('Python Script Error:', parsed.error);
-                                resolve({ score: 0, feedback: null });
-                            }
-                        } catch (e) {
-                            console.error('Failed to parse Python stdout:', stdout);
-                            resolve({ score: 0, feedback: null });
+                        console.error('HF API Error:', parsed.error);
+                    }
+                } catch (e) {
+                    console.error('Failed to call HF API:', e);
+                }
+            }
+            
+            if (pythonResult.score !== null) {
+                marksAwarded = pythonResult.score;
+                var advancedFeedback = pythonResult.feedback;
+            } else {
+                // Fallback to local math keyword logic
+                const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
+                const stdParagraphs = stdAnsClean.split(splitRegex).map(p => p.trim()).filter(p => p.length > 0);
+                if (stdParagraphs.length > 0) {
+                    const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'it', 'its', 'from']);
+                    const tokenise = (s) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
+                    const studentTokensSet = new Set(tokenise(studentTextClean));
+                    let matchCount = 0;
+                    for (const para of stdParagraphs) {
+                        const paraTokens = tokenise(para);
+                        const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
+                        if (matchedTokens >= Math.min(2, paraTokens.length / 3)) matchCount++;
+                    }
+                    marksAwarded = Math.round((matchCount / stdParagraphs.length) * qMaxMarks);
+
+                    const stdTokensSet = new Set(tokenise(stdAnsClean));
+                    if (stdTokensSet.size <= 3 && marksAwarded > 0) {
+                        let questionTextStr = "";
+                        if (process.env.DB_TYPE === 'postgres') {
+                            const qRes = await execute("SELECT question_text FROM questions WHERE id = $1", [questionId]);
+                            if (qRes.rows.length > 0) questionTextStr = qRes.rows[0].question_text || "";
+                        } else {
+                            const qRes = await execute("SELECT question_text FROM questions WHERE id = ?", [questionId]);
+                            if (qRes.length > 0) questionTextStr = qRes[0].question_text || "";
+                        }
+                        const questionTokensSet = new Set(tokenise(questionTextStr.replace(/<[^>]+>/g, ' ')));
+                        let guessingTokensCount = 0;
+                        for (const t of studentTokensSet) {
+                            if (!stdTokensSet.has(t) && !questionTokensSet.has(t)) guessingTokensCount++;
+                        }
+                        if (guessingTokensCount > 0) {
+                            marksAwarded = Math.round(marksAwarded * (stdTokensSet.size / (stdTokensSet.size + guessingTokensCount)));
                         }
                     }
-                });
-            });
-            
-            marksAwarded = pythonResult.score;
-            // Store feedback in the feedback column if it exists in schema
-            var advancedFeedback = pythonResult.feedback;
+                } else {
+                    marksAwarded = 0;
+                }
+                var advancedFeedback = null;
+            }
         } else {
             marksAwarded = 0;
             var advancedFeedback = null;

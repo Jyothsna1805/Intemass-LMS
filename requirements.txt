@@ -2,11 +2,3 @@ opencv-python-headless
 numpy
 pytesseract
 requests
-sentence-transformers
-transformers
-torch
-scikit-learn
-nltk
-spacy
-textblob
-reportlab
