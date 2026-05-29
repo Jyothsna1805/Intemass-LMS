@@ -165,7 +165,9 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         let studentTextClean = studentFinalText.replace(/<[^>]+>/g, ' ').trim();
 
         if (stdAnsClean && studentTextClean) {
-            const hfUrl = process.env.HF_GRADING_API_URL;
+            let hfUrl = process.env.HF_GRADING_API_URL;
+            if (hfUrl && !hfUrl.endsWith('/')) hfUrl += '/';
+            console.log("Attempting to use HF URL:", hfUrl);
             let pythonResult = { score: null, feedback: null };
             
             if (hfUrl) {
@@ -179,15 +181,19 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                             max_marks: qMaxMarks
                         })
                     });
+                    console.log("HF API HTTP Status:", response.status);
                     const parsed = await response.json();
+                    console.log("HF API Response Body:", parsed);
                     if (parsed.success && parsed.data) {
                         pythonResult = { score: parsed.data.score, feedback: JSON.stringify(parsed.data) };
                     } else {
-                        console.error('HF API Error:', parsed.error);
+                        console.error('HF API Error in parsed data:', parsed.error);
                     }
                 } catch (e) {
-                    console.error('Failed to call HF API:', e);
+                    console.error('Failed to call HF API fetch:', e.message);
                 }
+            } else {
+                console.log("HF_GRADING_API_URL is undefined, falling back to math logic.");
             }
             
             if (pythonResult.score !== null) {
