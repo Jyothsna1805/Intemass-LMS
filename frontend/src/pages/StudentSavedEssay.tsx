@@ -102,7 +102,11 @@ export default function StudentSavedEssay() {
         }
     }
         
-    const scoredM = dynamicallyCalculatedScore;
+    // Use the actual score from the database (graded by AI), fallback to math logic only if null
+    const scoredM = (submission.marks_awarded !== null && submission.marks_awarded !== undefined) 
+        ? submission.marks_awarded 
+        : dynamicallyCalculatedScore;
+        
     const cfPercent = ((scoredM / maxM) * 100).toFixed(2);
 
     return (
@@ -240,25 +244,10 @@ export default function StudentSavedEssay() {
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
                             <div className="p-4 w-1/3 text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
                                 {rawStudentText ? (
-                                    rawStudentText.split(/(\s+)/).map((wordOrSpace, idx) => {
-                                        if (!wordOrSpace.trim()) {
-                                            return <span key={idx}>{wordOrSpace}</span>;
-                                        }
-                                        const cleanWord = wordOrSpace.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                        if (!cleanWord) return <span key={idx}>{wordOrSpace}</span>;
-                                        
-                                        let colorClass = 'text-gray-800'; // Default black/neutral
-                                        if (stdTokensSet.has(cleanWord)) {
-                                            colorClass = 'text-green-600 font-bold not-italic';
-                                        } else if (stopWords.has(cleanWord) || cleanWord.length <= 3 || (typeof questionTokensSet !== 'undefined' && questionTokensSet.has(cleanWord))) {
-                                            colorClass = 'text-gray-800'; // Neutral
-                                        } else {
-                                            colorClass = 'text-red-500 font-bold not-italic'; // Wrong/Fluff
-                                        }
-                                        
-                                        return <span key={idx} className={colorClass}>{wordOrSpace}</span>;
-                                    })
-                                ) : "No text provided."}
+                                    <span>{rawStudentText}</span>
+                                ) : (
+                                    <span className="text-gray-400">No answer provided</span>
+                                )}
                             </div>
                             <div className="p-4 w-[calc(66.666%-200px)] space-y-2">
                                 {parsedActualAnswer}
