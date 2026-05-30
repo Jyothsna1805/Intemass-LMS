@@ -171,26 +171,51 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
             let pythonResult = { score: null, feedback: null };
             
             if (hfUrl) {
+                const https = require('https');
+                const url = require('url');
+                const parsedUrl = url.parse(hfUrl);
+                const postData = JSON.stringify({
+                    student_answer: studentTextClean,
+                    model_answer: stdAnsClean,
+                    max_marks: qMaxMarks
+                });
+                
+                const options = {
+                    hostname: parsedUrl.hostname,
+                    port: parsedUrl.port || 443,
+                    path: parsedUrl.path,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(postData)
+                    }
+                };
+
                 try {
-                    const response = await fetch(hfUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            student_answer: studentTextClean,
-                            model_answer: stdAnsClean,
-                            max_marks: qMaxMarks
-                        })
+                    const parsed = await new Promise((resolve, reject) => {
+                        const req = https.request(options, (res) => {
+                            let body = '';
+                            res.on('data', (chunk) => body += chunk);
+                            res.on('end', () => {
+                                try {
+                                    resolve(JSON.parse(body));
+                                } catch (e) {
+                                    reject(e);
+                                }
+                            });
+                        });
+                        req.on('error', (e) => reject(e));
+                        req.write(postData);
+                        req.end();
                     });
-                    console.log("HF API HTTP Status:", response.status);
-                    const parsed = await response.json();
-                    console.log("HF API Response Body:", parsed);
+                    
                     if (parsed.success && parsed.data) {
                         pythonResult = { score: parsed.data.score, feedback: JSON.stringify(parsed.data) };
                     } else {
                         console.error('HF API Error in parsed data:', parsed.error);
                     }
                 } catch (e) {
-                    console.error('Failed to call HF API fetch:', e.message);
+                    console.error('Failed to call HF API via https:', e.message);
                 }
             } else {
                 console.log("HF_GRADING_API_URL is undefined, falling back to math logic.");
