@@ -225,38 +225,40 @@ export default function StudentSavedEssay() {
                         </div>
 
                         {/* Columns Details */}
-                        <div className="flex border-b-2 border-black font-bold text-xs text-center divide-x-2 divide-black">
-                            <div className="p-2 w-1/3 flex items-center justify-center">Student Answer</div>
-                            <div className="p-2 w-[calc(66.666%-200px)] flex items-center justify-center">Actual Answer</div>
-                            <div className="p-2 w-[50px] flex items-center justify-center">Max. Marks</div>
-                            <div className="p-2 w-[50px] flex items-center justify-center">Scored</div>
-                            <div className="p-2 w-[50px] flex items-center justify-center">C.F %</div>
-                            <div className="p-2 w-[50px] flex items-center justify-center">Answer Explanation</div>
+                        <div className="grid grid-cols-[1fr_2fr_1fr] border-b-2 border-black text-sm font-bold divide-x-2 divide-black">
+                            <div className="p-2 text-center bg-[#e5e1e8]">Student Answer</div>
+                            <div className="p-2 text-center bg-[#e5e1e8]">Actual Answer</div>
+                            <div className="grid grid-cols-3 divide-x-2 divide-black col-span-1 text-[10px]">
+                                <div className="p-2 flex items-center justify-center">Max. Marks</div>
+                                <div className="p-2 flex items-center justify-center">Scored</div>
+                                <div className="p-2 flex items-center justify-center">C.F %</div>
+                            </div>
                         </div>
 
                         {/* Question Row */}
-                        <div className="border-b-2 border-black p-4 text-xs font-bold bg-gray-50 flex gap-4">
-                            <span className="shrink-0">Question: 1</span>
+                        <div className="flex items-center gap-2 p-4 font-bold text-sm bg-white border-b-2 border-black">
+                            <span>Question: 1</span>
                             <div dangerouslySetInnerHTML={{ __html: submission.question_text }} />
                         </div>
 
                         {/* Content Row */}
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
-                            <div className="p-4 w-1/3 text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
+                            <div className="p-4 w-[33.333%] text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
                                 {rawStudentText ? (
                                     <span>{rawStudentText}</span>
                                 ) : (
                                     <span className="text-gray-400">No answer provided</span>
                                 )}
                             </div>
-                            <div className="p-4 w-[calc(66.666%-200px)] space-y-2">
-                                {parsedActualAnswer}
-                            </div>
-                            <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{maxM}</div>
-                            <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{scoredM}</div>
-                            <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{cfPercent}</div>
-                            <div className="p-4 w-[150px] text-[10px] text-left font-normal border-l-2 border-black break-words overflow-y-auto max-h-[400px]">
-                                {submission.feedback || "No feedback"}
+                            <div className="p-4 w-[66.666%] space-y-2 relative">
+                                <div className="pr-[150px]">
+                                    {parsedActualAnswer}
+                                </div>
+                                <div className="absolute right-0 top-0 h-full w-[150px] flex">
+                                    <div className="w-[50px] flex items-start justify-center p-4 font-bold text-sm border-l-2 border-black">{maxM}</div>
+                                    <div className="w-[50px] flex items-start justify-center p-4 font-bold text-sm border-l-2 border-black">{scoredM}</div>
+                                    <div className="w-[50px] flex items-start justify-center p-4 font-bold text-sm border-l-2 border-black">{cfPercent}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
