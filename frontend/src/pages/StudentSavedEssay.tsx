@@ -245,7 +245,23 @@ export default function StudentSavedEssay() {
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
                             <div className="p-4 w-[33.333%] text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
                                 {rawStudentText ? (
-                                    <span>{rawStudentText}</span>
+                                    rawStudentText.split(/(\s+)/).map((wordOrSpace, idx) => {
+                                        if (!wordOrSpace.trim()) {
+                                            return <span key={idx}>{wordOrSpace}</span>;
+                                        }
+                                        const cleanWord = wordOrSpace.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                        if (!cleanWord) return <span key={idx}>{wordOrSpace}</span>;
+                                        
+                                        let colorClass = 'text-gray-800'; // Default black/neutral
+                                        if (stdTokensSet.size > 0 && !stopWords.has(cleanWord) && cleanWord.length > 3) {
+                                            if (stdTokensSet.has(cleanWord)) {
+                                                colorClass = 'text-green-600 font-bold not-italic';
+                                            } else {
+                                                colorClass = 'text-red-500 font-bold not-italic';
+                                            }
+                                        }
+                                        return <span key={idx} className={colorClass}>{wordOrSpace}</span>;
+                                    })
                                 ) : (
                                     <span className="text-gray-400">No answer provided</span>
                                 )}
