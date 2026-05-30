@@ -255,7 +255,9 @@ export default function StudentSavedEssay() {
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{maxM}</div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{scoredM}</div>
                             <div className="p-4 w-[50px] text-center font-bold text-sm border-l-2 border-black border-r-0">{cfPercent}</div>
-                            <div className="p-4 w-[50px] text-[10px] text-center font-normal border-l-2 border-black"></div>
+                            <div className="p-4 w-[150px] text-[10px] text-left font-normal border-l-2 border-black break-words overflow-y-auto max-h-[400px]">
+                                {submission.feedback || "No feedback"}
+                            </div>
                         </div>
                     </div>
                 )}
