@@ -257,7 +257,11 @@ export default function StudentSavedEssay() {
                                             if (stdTokensSet.has(cleanWord)) {
                                                 colorClass = 'text-green-600 font-bold not-italic';
                                             } else {
-                                                colorClass = 'text-red-500 font-bold not-italic';
+                                                // Only color non-matching words red if the student failed the question
+                                                // If they passed, extra words are just part of their correct explanation
+                                                if (scoredM < (maxM / 2)) {
+                                                    colorClass = 'text-red-500 font-bold not-italic';
+                                                }
                                             }
                                         }
                                         return <span key={idx} className={colorClass}>{wordOrSpace}</span>;
