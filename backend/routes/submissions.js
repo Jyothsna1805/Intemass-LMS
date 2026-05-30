@@ -146,13 +146,13 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         let stdAns = "";
 
         if (process.env.DB_TYPE === 'postgres') {
-            const qResult = await execute("SELECT standard_answer, max_marks FROM questions WHERE id = $1", [questionId]);
-            if (qResult.rows.length > 0) {
-                stdAns = qResult.rows[0].standard_answer || "";
-                qMaxMarks = qResult.rows[0].max_marks || 5;
+            const qResult = await query("SELECT standard_answer, max_marks FROM questions WHERE id = $1", [questionId]);
+            if (qResult.length > 0) {
+                stdAns = qResult[0].standard_answer || "";
+                qMaxMarks = qResult[0].max_marks || 5;
             }
         } else {
-            const qResult = await execute("SELECT standard_answer, max_marks FROM questions WHERE id = ?", [questionId]);
+            const qResult = await query("SELECT standard_answer, max_marks FROM questions WHERE id = ?", [questionId]);
             if (qResult.length > 0) {
                 stdAns = qResult[0].standard_answer || "";
                 qMaxMarks = qResult[0].max_marks || 5;
