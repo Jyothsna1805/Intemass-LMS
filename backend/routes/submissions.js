@@ -262,11 +262,20 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 } else {
                     marksAwarded = 0;
                 }
-                var advancedFeedback = null;
+                var advancedFeedback = JSON.stringify({
+                    debug: "MATH_LOGIC",
+                    qMaxMarks,
+                    stdAnsClean,
+                    studentTextClean,
+                    matchCount: matchCount || 0,
+                    stdParagraphsLength: stdParagraphs.length,
+                    pythonResult,
+                    hfUrl
+                });
             }
         } else {
             marksAwarded = 0;
-            var advancedFeedback = null;
+            var advancedFeedback = JSON.stringify({ debug: "SKIPPED_IF_BLOCK", stdAnsClean, studentTextClean });
         }
         // ----------------------------------------------------------------------
 
