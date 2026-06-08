@@ -205,6 +205,10 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                             });
                         });
                         req.on('error', (e) => reject(e));
+                        req.setTimeout(15000, () => {
+                            req.destroy();
+                            reject(new Error('HF API request timed out'));
+                        });
                         req.write(postData);
                         req.end();
                     });
