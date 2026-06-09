@@ -15,6 +15,10 @@ WORKDIR /app
 
 # Install Python ML specific dependencies
 COPY requirements.txt ./
+
+# Upgrade pip and wheel to prevent building Spacy/Blis from source (which causes 20-minute timeouts)
+RUN pip3 install --upgrade pip setuptools wheel
+
 # Install CPU-only PyTorch first to prevent Railway out-of-memory errors (2.5GB -> 200MB)
 RUN pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip3 install --no-cache-dir -r requirements.txt
