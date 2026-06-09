@@ -5,6 +5,6 @@ requests
 flask
 sentence-transformers
 transformers
-spacy
+spacy==3.7.5
 textblob
 reportlab
