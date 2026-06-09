@@ -15,6 +15,8 @@ WORKDIR /app
 
 # Install Python ML specific dependencies
 COPY requirements.txt ./
+# Install CPU-only PyTorch first to prevent Railway out-of-memory errors (2.5GB -> 200MB)
+RUN pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Download AI Models during build to save time on boot

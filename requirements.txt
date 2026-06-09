@@ -5,7 +5,6 @@ requests
 flask
 sentence-transformers
 transformers
-torch
 spacy
 textblob
 reportlab
