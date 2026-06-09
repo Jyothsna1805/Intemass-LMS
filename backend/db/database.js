@@ -29,6 +29,9 @@ const initDb = async () => {
             await dbInstance.query(schemaSql);
             console.log("Postgres database initialized");
             
+            // Force reset to restore original data (CASCADE handles foreign keys)
+            await dbInstance.query('TRUNCATE TABLE users CASCADE');
+            
             // Seed default users and old assignments if they don't exist
             const res = await dbInstance.query('SELECT COUNT(*) FROM users');
             if (parseInt(res.rows[0].count) === 0) {
