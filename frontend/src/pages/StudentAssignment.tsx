@@ -60,9 +60,7 @@ export default function StudentAssignment() {
                 formData.append('answerText', text);
                 if (file) formData.append('file', file);
 
-                return api.post('/submissions', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                return api.post('/submissions', formData);
             });
 
             await Promise.all(promises);

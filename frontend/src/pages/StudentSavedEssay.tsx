@@ -101,6 +101,18 @@ export default function StudentSavedEssay() {
             dynamicallyCalculatedScore = Math.round(dynamicallyCalculatedScore * penaltyFactor);
         }
     }
+    // Parse Advanced Feedback from the new AI pipeline
+    let advancedFeedbackObj: any = null;
+    if (submission.feedback) {
+        try {
+            advancedFeedbackObj = JSON.parse(submission.feedback);
+            if (typeof advancedFeedbackObj === 'string') {
+                advancedFeedbackObj = JSON.parse(advancedFeedbackObj);
+            }
+        } catch(e) {
+            console.error("Failed to parse advanced feedback", e);
+        }
+    }
         
     // Use the actual score from the database (graded by AI), fallback to math logic only if null
     const scoredM = (submission.marks_awarded !== null && submission.marks_awarded !== undefined) 
@@ -270,9 +282,49 @@ export default function StudentSavedEssay() {
                                     <span className="text-gray-400">No answer provided</span>
                                 )}
                             </div>
-                            <div className="p-4 w-[66.666%] space-y-2 relative">
+                            <div className="p-4 w-[66.666%] space-y-4 relative">
                                 <div className="pr-[150px]">
-                                    {parsedActualAnswer}
+                                    {advancedFeedbackObj && advancedFeedbackObj.points_feedback ? (
+                                        <div className="space-y-4">
+                                            {advancedFeedbackObj.points_feedback.map((point: any, i: number) => {
+                                                const isCorrect = point.status === 'correct';
+                                                const isPartial = point.status === 'partial';
+                                                const bgColor = isCorrect ? 'bg-green-50' : isPartial ? 'bg-yellow-50' : 'bg-red-50';
+                                                const borderColor = isCorrect ? 'border-green-200' : isPartial ? 'border-yellow-200' : 'border-red-200';
+                                                const textColor = isCorrect ? 'text-green-800' : isPartial ? 'text-yellow-800' : 'text-red-800';
+                                                
+                                                return (
+                                                    <div key={i} className={`p-4 border rounded-md shadow-sm ${bgColor} ${borderColor}`}>
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <span className={`font-bold uppercase text-[10px] tracking-wider px-2 py-1 rounded-sm ${isCorrect ? 'bg-green-200' : isPartial ? 'bg-yellow-200' : 'bg-red-200'} ${textColor}`}>
+                                                                Point {point.id}: {point.status}
+                                                            </span>
+                                                            <span className="text-xs font-bold text-gray-500">Match: {(point.semantic_score * 100).toFixed(0)}%</span>
+                                                        </div>
+                                                        <div className="mb-2 text-sm italic text-gray-700">
+                                                            <span className="font-bold mr-1">Expected:</span>{point.expected}
+                                                        </div>
+                                                        <div className="text-xs leading-relaxed text-gray-800">
+                                                            <span className="font-bold mr-1">Analysis:</span>{point.explanation}
+                                                        </div>
+                                                        {point.suggestion && (
+                                                            <div className="text-xs leading-relaxed text-gray-800 mt-2 font-medium">
+                                                                <span className="font-bold mr-1 text-blue-700">💡 Suggestion:</span>{point.suggestion}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            {advancedFeedbackObj.overall_feedback && (
+                                                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                                                    <h4 className="font-bold text-blue-900 text-sm mb-2">👨‍🏫 Teacher's Overall Feedback</h4>
+                                                    <p className="text-xs text-blue-800 leading-relaxed">{advancedFeedbackObj.overall_feedback}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        parsedActualAnswer
+                                    )}
                                 </div>
                                 <div className="absolute right-0 top-0 h-full w-[150px] flex">
                                     <div className="w-[50px] flex items-start justify-center p-4 font-bold text-sm border-l-2 border-black">{maxM}</div>

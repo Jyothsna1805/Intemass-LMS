@@ -165,15 +165,14 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         let studentTextClean = studentFinalText.replace(/<[^>]+>/g, ' ').trim();
 
         if (stdAnsClean && studentTextClean) {
-            let hfUrl = process.env.HF_GRADING_API_URL;
-            if (hfUrl && !hfUrl.endsWith('/')) hfUrl += '/';
-            console.log("Attempting to use HF URL:", hfUrl);
+            let aiUrl = process.env.HF_GRADING_API_URL || 'http://127.0.0.1:5000/grade';
+            console.log("Attempting to use AI URL:", aiUrl);
             let pythonResult = { score: null, feedback: null };
             
-            if (hfUrl) {
-                const https = require('https');
+            if (aiUrl) {
+                const http = aiUrl.startsWith('https') ? require('https') : require('http');
                 const url = require('url');
-                const parsedUrl = url.parse(hfUrl);
+                const parsedUrl = url.parse(aiUrl);
                 const postData = JSON.stringify({
                     student_answer: studentTextClean,
                     model_answer: stdAnsClean,
@@ -182,7 +181,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 
                 const options = {
                     hostname: parsedUrl.hostname,
-                    port: parsedUrl.port || 443,
+                    port: parsedUrl.port || (aiUrl.startsWith('https') ? 443 : 80),
                     path: parsedUrl.path,
                     method: 'POST',
                     headers: {
@@ -193,7 +192,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
 
                 try {
                     const parsed = await new Promise((resolve, reject) => {
-                        const req = https.request(options, (res) => {
+                        const req = http.request(options, (res) => {
                             let body = '';
                             res.on('data', (chunk) => body += chunk);
                             res.on('end', () => {
@@ -207,7 +206,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                         req.on('error', (e) => reject(e));
                         req.setTimeout(15000, () => {
                             req.destroy();
-                            reject(new Error('HF API request timed out'));
+                            reject(new Error('AI API request timed out'));
                         });
                         req.write(postData);
                         req.end();
@@ -216,13 +215,13 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                     if (parsed.success && parsed.data) {
                         pythonResult = { score: parsed.data.score, feedback: JSON.stringify(parsed.data) };
                     } else {
-                        console.error('HF API Error in parsed data:', parsed.error);
+                        console.error('AI API Error in parsed data:', parsed.error);
                     }
                 } catch (e) {
-                    console.error('Failed to call HF API via https:', e.message);
+                    console.error('Failed to call AI API:', e.message);
                 }
             } else {
-                console.log("HF_GRADING_API_URL is undefined, falling back to math logic.");
+                console.log("AI_GRADING_API_URL is undefined, falling back to math logic.");
             }
             
             if (pythonResult.score !== null) {
