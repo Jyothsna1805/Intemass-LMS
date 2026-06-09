@@ -71,17 +71,23 @@ export default function StudentSavedEssay() {
 
         return (
             <div key={idx} className="mb-3 font-semibold text-sm leading-relaxed text-gray-800">
-                {para.split(/(\s+)/).map((wordOrSpace, wIdx) => {
-                    if (!wordOrSpace.trim()) return <span key={wIdx}>{wordOrSpace}</span>;
-                    const cleanWord = wordOrSpace.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    if (!cleanWord || stopWords.has(cleanWord) || cleanWord.length <= 3) {
-                        return <span key={wIdx}>{wordOrSpace}</span>;
+                {para.split(/(?<=[.!?])\s+/).map((sentence, sIdx) => {
+                    if (!sentence.trim()) return <span key={sIdx}>{sentence} </span>;
+                    
+                    const sentenceTokens = tokenise(sentence);
+                    const matchedTokens = sentenceTokens.filter(t => studentTokensSet.has(t)).length;
+                    const isMatched = sentenceTokens.length > 0 && matchedTokens >= Math.min(2, sentenceTokens.length / 3);
+                    
+                    let colorClass = 'text-gray-800'; // Default
+                    if (studentTokensSet.size > 0) {
+                        if (isMatched) {
+                            colorClass = 'text-green-600 font-bold';
+                        } else {
+                            colorClass = 'text-red-500 font-bold underline';
+                        }
                     }
-                    if (studentTokensSet.has(cleanWord)) {
-                        return <span key={wIdx} className="text-green-600 font-bold">{wordOrSpace}</span>;
-                    } else {
-                        return <span key={wIdx} className="text-red-500 font-bold underline">{wordOrSpace}</span>;
-                    }
+                    
+                    return <span key={sIdx} className={colorClass}>{sentence} </span>;
                 })}
             </div>
         );
@@ -268,22 +274,23 @@ export default function StudentSavedEssay() {
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
                             <div className="p-4 w-[33.333%] text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
                                 {rawStudentText ? (
-                                    rawStudentText.split(/(\s+)/).map((wordOrSpace, idx) => {
-                                        if (!wordOrSpace.trim()) {
-                                            return <span key={idx}>{wordOrSpace}</span>;
-                                        }
-                                        const cleanWord = wordOrSpace.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                        if (!cleanWord) return <span key={idx}>{wordOrSpace}</span>;
+                                    rawStudentText.split(/(?<=[.!?])\s+/).map((sentence, idx) => {
+                                        if (!sentence.trim()) return <span key={idx}>{sentence} </span>;
                                         
-                                        let colorClass = 'text-gray-800'; // Default black/neutral
-                                        if (stdTokensSet.size > 0 && !stopWords.has(cleanWord) && cleanWord.length > 3) {
-                                            if (stdTokensSet.has(cleanWord)) {
+                                        const sentenceTokens = tokenise(sentence);
+                                        const matchedTokens = sentenceTokens.filter(t => stdTokensSet.has(t)).length;
+                                        const isMatched = sentenceTokens.length > 0 && matchedTokens >= Math.min(2, sentenceTokens.length / 3);
+                                        
+                                        let colorClass = 'text-gray-800'; // Default
+                                        if (stdTokensSet.size > 0) {
+                                            if (isMatched) {
                                                 colorClass = 'text-green-600 font-bold not-italic';
                                             } else {
                                                 colorClass = 'text-red-500 font-bold not-italic';
                                             }
                                         }
-                                        return <span key={idx} className={colorClass}>{wordOrSpace}</span>;
+                                        
+                                        return <span key={idx} className={colorClass}>{sentence} </span>;
                                     })
                                 ) : (
                                     <span className="text-gray-400">No answer provided</span>
