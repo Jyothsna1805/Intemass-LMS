@@ -67,7 +67,9 @@ export default function StudentAssignment() {
             navigate('/student-dashboard');
         } catch (err) {
             console.error(err);
-            alert("Failed to submit. Please try again.");
+            const error = err as { response?: { data?: { error?: string } } };
+            const errorMsg = error.response?.data?.error || "Failed to submit. Please try again.";
+            alert("Error: " + errorMsg);
         } finally {
             setSubmitting(false);
         }

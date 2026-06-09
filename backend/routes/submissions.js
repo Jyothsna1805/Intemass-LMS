@@ -312,7 +312,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         });
     } catch (error) {
         console.error("Error creating submission:", error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 });
 
