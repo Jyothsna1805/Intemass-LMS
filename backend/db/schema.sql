@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS questions (
     question_text TEXT NOT NULL,
     standard_answer TEXT,        
     type VARCHAR(20) CHECK (type IN ('essay', 'short_answer')),
+    subject VARCHAR(100) DEFAULT 'Uncategorized',
+    max_marks INTEGER DEFAULT 5,
     created_at TIMESTAMP DEFAULT NOW()
 );
 

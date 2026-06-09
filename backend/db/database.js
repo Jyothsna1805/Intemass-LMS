@@ -29,6 +29,14 @@ const initDb = async () => {
             await dbInstance.query(schemaSql);
             console.log("Postgres database initialized");
             
+            // Fix: Add missing columns to questions table if they don't exist
+            try {
+                await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS subject VARCHAR(100) DEFAULT \'Uncategorized\'');
+                await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS max_marks INTEGER DEFAULT 5');
+            } catch (err) {
+                console.error("Error adding columns:", err);
+            }
+            
             // Force reset to restore original data (CASCADE handles foreign keys)
             await dbInstance.query('TRUNCATE TABLE users CASCADE');
             
