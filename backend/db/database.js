@@ -29,9 +29,6 @@ const initDb = async () => {
             await dbInstance.query(schemaSql);
             console.log("Postgres database initialized");
             
-            // Force reset to restore original data
-            await dbInstance.query('DELETE FROM users');
-            
             // Seed default users and old assignments if they don't exist
             const res = await dbInstance.query('SELECT COUNT(*) FROM users');
             if (parseInt(res.rows[0].count) === 0) {
