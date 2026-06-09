@@ -71,7 +71,18 @@ export default function StudentSavedEssay() {
 
         return (
             <div key={idx} className="mb-3 font-semibold text-sm leading-relaxed text-gray-800">
-                {para}
+                {para.split(/(\s+)/).map((wordOrSpace, wIdx) => {
+                    if (!wordOrSpace.trim()) return <span key={wIdx}>{wordOrSpace}</span>;
+                    const cleanWord = wordOrSpace.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (!cleanWord || stopWords.has(cleanWord) || cleanWord.length <= 3) {
+                        return <span key={wIdx}>{wordOrSpace}</span>;
+                    }
+                    if (studentTokensSet.has(cleanWord)) {
+                        return <span key={wIdx} className="text-green-600 font-bold">{wordOrSpace}</span>;
+                    } else {
+                        return <span key={wIdx} className="text-red-500 font-bold underline">{wordOrSpace}</span>;
+                    }
+                })}
             </div>
         );
     });
@@ -280,8 +291,16 @@ export default function StudentSavedEssay() {
                             </div>
                             <div className="p-4 w-[66.666%] space-y-4 relative">
                                 <div className="pr-[150px]">
-                                    {advancedFeedbackObj && advancedFeedbackObj.points_feedback ? (
-                                        <div className="space-y-4">
+                                    {/* Always show the exact actual answer text with color coding */}
+                                    <div className="mb-6">
+                                        <h4 className="font-bold text-gray-700 text-xs uppercase tracking-widest mb-3 border-b border-gray-300 pb-1">Expected Standard Answer</h4>
+                                        {parsedActualAnswer}
+                                    </div>
+                                    
+                                    {/* If AI provided detailed feedback, show it below the standard answer */}
+                                    {advancedFeedbackObj && advancedFeedbackObj.points_feedback && (
+                                        <div className="space-y-4 pt-4 border-t-2 border-dashed border-gray-300">
+                                            <h4 className="font-bold text-purple-900 text-xs uppercase tracking-widest mb-3">AI Semantic Analysis</h4>
                                             {advancedFeedbackObj.points_feedback.map((point: any, i: number) => {
                                                 const isCorrect = point.status === 'correct';
                                                 const isPartial = point.status === 'partial';
@@ -318,8 +337,6 @@ export default function StudentSavedEssay() {
                                                 </div>
                                             )}
                                         </div>
-                                    ) : (
-                                        parsedActualAnswer
                                     )}
                                 </div>
                                 <div className="absolute right-0 top-0 h-full w-[150px] flex">
