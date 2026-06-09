@@ -273,7 +273,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                     matchCount: matchCount || 0,
                     stdParagraphsLength: stdParagraphs.length,
                     pythonResult,
-                    hfUrl
+                    aiUrl
                 });
             }
         } else {
