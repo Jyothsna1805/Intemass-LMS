@@ -71,7 +71,7 @@ export default function StudentSavedEssay() {
 
         let colorClass = 'text-gray-800'; // Default
         if (studentTokensSet.size > 0) {
-            if (isMatched) {
+            if (isMatchedBool) {
                 colorClass = 'text-green-600 font-bold';
             } else {
                 colorClass = 'text-red-500 font-bold italic';
