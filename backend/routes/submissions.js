@@ -241,8 +241,12 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                     
                     for (const para of stdParagraphs) {
                         const paraTokens = tokenise(para);
-                        const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
-                        if (paraTokens.length > 0 && matchedTokens >= Math.max(3, paraTokens.length * 0.55)) matchCount++;
+                        const uniqueParaTokens = new Set(paraTokens);
+                        let matchedUnique = 0;
+                        for (const t of uniqueParaTokens) {
+                            if (studentTokensSet.has(t)) matchedUnique++;
+                        }
+                        if (uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.85)) matchCount++;
                     }
                     marksAwarded = Math.round((matchCount / stdParagraphs.length) * qMaxMarks);
 

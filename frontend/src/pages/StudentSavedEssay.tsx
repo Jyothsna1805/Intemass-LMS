@@ -72,8 +72,9 @@ export default function StudentSavedEssay() {
             if (studentTokensSet.has(t)) matchedUnique++;
         }
         
-        // Use 65% unique token overlap to ensure strict grading and turn wrong points RED
-        const isMatchedBool = uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.65);
+        // Use 85% unique token overlap to ensure ultra-strict grading.
+        // If the student misses even a few unique keywords, the point turns RED.
+        const isMatchedBool = uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.85);
 
         if (isMatchedBool) dynamicMatchCount++;
 
