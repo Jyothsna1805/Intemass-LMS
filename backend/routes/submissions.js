@@ -254,7 +254,15 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                         for (const t of uniqueParaTokens) {
                             if (studentTokensSet.has(t)) matchedUnique++;
                         }
-                        if (uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.70)) matchCount++;
+                        let baseMatch = uniqueParaTokens.size > 0 ? (matchedUnique / uniqueParaTokens.size) : 0;
+                        const cleanParaString = para.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const cleanStudentString = studentTextClean.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const heading = cleanParaString.substring(0, 35);
+                        if (heading.length > 10 && cleanStudentString.includes(heading)) {
+                            baseMatch += 0.30;
+                        }
+
+                        if (uniqueParaTokens.size > 0 && baseMatch >= 0.65) matchCount++;
                     }
                     marksAwarded = Math.round((matchCount / stdParagraphs.length) * qMaxMarks);
 

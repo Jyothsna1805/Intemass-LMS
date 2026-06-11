@@ -81,8 +81,19 @@ export default function StudentSavedEssay() {
             if (studentTokensSet.has(t)) matchedUnique++;
         }
         
-        // Use 70% unique token overlap to ensure strict grading without being overly punishing.
-        const isMatchedBool = uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.70);
+        let baseMatch = uniqueParaTokens.size > 0 ? (matchedUnique / uniqueParaTokens.size) : 0;
+        
+        // Heading Bonus: If the student explicitly started this point (first 40 chars match), they get a massive bonus.
+        // This ensures partially answered points (like a truncated Point 5) are marked green, 
+        // while completely skipped points (like Point 3) fall below the 65% threshold and turn red.
+        const cleanParaString = para.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanStudentString = rawStudentText.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const heading = cleanParaString.substring(0, 35);
+        if (heading.length > 10 && cleanStudentString.includes(heading)) {
+            baseMatch += 0.30;
+        }
+
+        const isMatchedBool = uniqueParaTokens.size > 0 && baseMatch >= 0.65;
 
         if (isMatchedBool) dynamicMatchCount++;
 
