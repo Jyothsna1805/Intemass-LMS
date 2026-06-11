@@ -94,7 +94,7 @@ export default function StudentSavedEssay() {
         }
 
         return (
-            <div key={idx} className={`mb-4 font-semibold text-sm leading-relaxed ${colorClass}`}>
+            <div key={idx} className={`mb-4 font-semibold text-sm leading-relaxed whitespace-pre-wrap ${colorClass}`}>
                 {para}
             </div>
         );
