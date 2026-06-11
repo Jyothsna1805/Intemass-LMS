@@ -65,30 +65,22 @@ export default function StudentSavedEssay() {
         if (!para) return null;
         const paraTokens = tokenise(para);
         const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
-        const isMatched = matchedTokens >= Math.min(2, paraTokens.length / 3);
+        const isMatchedBool = paraTokens.length > 0 && matchedTokens >= Math.min(2, paraTokens.length / 3);
 
-        if (isMatched) dynamicMatchCount++;
+        if (isMatchedBool) dynamicMatchCount++;
+
+        let colorClass = 'text-gray-800'; // Default
+        if (studentTokensSet.size > 0) {
+            if (isMatched) {
+                colorClass = 'text-green-600 font-bold';
+            } else {
+                colorClass = 'text-red-500 font-bold italic';
+            }
+        }
 
         return (
-            <div key={idx} className="mb-3 font-semibold text-sm leading-relaxed text-gray-800">
-                {(para.match(/[^.!?]+[.!?]*\s*/g) || [para]).map((sentence, sIdx) => {
-                    if (!sentence.trim()) return <span key={sIdx}>{sentence}</span>;
-                    
-                    const sentenceTokens = tokenise(sentence);
-                    const matchedTokens = sentenceTokens.filter(t => studentTokensSet.has(t)).length;
-                    const isMatched = sentenceTokens.length > 0 && matchedTokens >= Math.min(2, sentenceTokens.length / 3);
-                    
-                    let colorClass = 'text-gray-800'; // Default
-                    if (studentTokensSet.size > 0) {
-                        if (isMatched) {
-                            colorClass = 'text-green-600 font-bold';
-                        } else {
-                            colorClass = 'text-red-500 font-bold underline';
-                        }
-                    }
-                    
-                    return <span key={sIdx} className={colorClass}>{sentence}</span>;
-                })}
+            <div key={idx} className={`mb-4 font-semibold text-sm leading-relaxed ${colorClass}`}>
+                {para}
             </div>
         );
     });
@@ -274,24 +266,7 @@ export default function StudentSavedEssay() {
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
                             <div className="p-4 w-[33.333%] text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
                                 {rawStudentText ? (
-                                    (rawStudentText.match(/[^.!?]+[.!?]*\s*/g) || [rawStudentText]).map((sentence, idx) => {
-                                        if (!sentence.trim()) return <span key={idx}>{sentence}</span>;
-                                        
-                                        const sentenceTokens = tokenise(sentence);
-                                        const matchedTokens = sentenceTokens.filter(t => stdTokensSet.has(t)).length;
-                                        const isMatched = sentenceTokens.length > 0 && matchedTokens >= Math.min(2, sentenceTokens.length / 3);
-                                        
-                                        let colorClass = 'text-gray-800'; // Default
-                                        if (stdTokensSet.size > 0) {
-                                            if (isMatched) {
-                                                colorClass = 'text-green-600 font-bold not-italic';
-                                            } else {
-                                                colorClass = 'text-red-500 font-bold not-italic';
-                                            }
-                                        }
-                                        
-                                        return <span key={idx} className={colorClass}>{sentence} </span>;
-                                    })
+                                    <span className="text-gray-800">{rawStudentText}</span>
                                 ) : (
                                     <span className="text-gray-400">No answer provided</span>
                                 )}
