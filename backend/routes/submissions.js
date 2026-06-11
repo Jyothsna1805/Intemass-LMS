@@ -231,11 +231,12 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 // Fallback to local math keyword logic
                 const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
                 const stdParagraphs = stdAnsClean.split(splitRegex).map(p => p.trim()).filter(p => p.length > 0);
+                let matchCount = 0;
                 if (stdParagraphs.length > 0) {
                     const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'it', 'its', 'from']);
                     const tokenise = (s) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
                     const studentTokensSet = new Set(tokenise(studentTextClean));
-                    let matchCount = 0;
+                    
                     for (const para of stdParagraphs) {
                         const paraTokens = tokenise(para);
                         const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
