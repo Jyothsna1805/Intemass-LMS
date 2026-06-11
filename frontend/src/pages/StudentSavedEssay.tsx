@@ -71,8 +71,8 @@ export default function StudentSavedEssay() {
 
         return (
             <div key={idx} className="mb-3 font-semibold text-sm leading-relaxed text-gray-800">
-                {para.split(/(?<=[.!?])\s+/).map((sentence, sIdx) => {
-                    if (!sentence.trim()) return <span key={sIdx}>{sentence} </span>;
+                {(para.match(/[^.!?]+[.!?]*\s*/g) || [para]).map((sentence, sIdx) => {
+                    if (!sentence.trim()) return <span key={sIdx}>{sentence}</span>;
                     
                     const sentenceTokens = tokenise(sentence);
                     const matchedTokens = sentenceTokens.filter(t => studentTokensSet.has(t)).length;
@@ -87,7 +87,7 @@ export default function StudentSavedEssay() {
                         }
                     }
                     
-                    return <span key={sIdx} className={colorClass}>{sentence} </span>;
+                    return <span key={sIdx} className={colorClass}>{sentence}</span>;
                 })}
             </div>
         );
@@ -274,8 +274,8 @@ export default function StudentSavedEssay() {
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
                             <div className="p-4 w-[33.333%] text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
                                 {rawStudentText ? (
-                                    rawStudentText.split(/(?<=[.!?])\s+/).map((sentence, idx) => {
-                                        if (!sentence.trim()) return <span key={idx}>{sentence} </span>;
+                                    (rawStudentText.match(/[^.!?]+[.!?]*\s*/g) || [rawStudentText]).map((sentence, idx) => {
+                                        if (!sentence.trim()) return <span key={idx}>{sentence}</span>;
                                         
                                         const sentenceTokens = tokenise(sentence);
                                         const matchedTokens = sentenceTokens.filter(t => stdTokensSet.has(t)).length;
