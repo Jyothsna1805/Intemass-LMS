@@ -53,9 +53,11 @@ export default function StudentSavedEssay() {
     
     // Split by newlines or numbered points (e.g. "1. ", "2. ")
     const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
-    const stdParagraphs = standardText.split(splitRegex).map(p => p.trim()).filter(p => p.length > 0);
+    const stdParagraphs = standardText.split(splitRegex)
+        .map(p => p.trim())
+        .filter(p => p.length > 0 && !p.toLowerCase().includes('here is the standard answer') && !p.toLowerCase().includes('certainly!'));
     
-    const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'it', 'its', 'from']);
+    const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'it', 'its', 'from', 'here', 'your', 'question', 'requested', 'structured', 'major', 'points']);
     const tokenise = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
     
     const studentTokensSet = new Set(tokenise(rawStudentText));
@@ -63,9 +65,11 @@ export default function StudentSavedEssay() {
     let dynamicMatchCount = 0;
     const parsedActualAnswer = stdParagraphs.map((para, idx) => {
         if (!para) return null;
+        
         const paraTokens = tokenise(para);
         const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
-        const isMatchedBool = paraTokens.length > 0 && matchedTokens >= Math.min(2, paraTokens.length / 3);
+        // Increase threshold to 55% overlap of non-stop words to prevent false positives from generic vocabulary
+        const isMatchedBool = paraTokens.length > 0 && matchedTokens >= Math.max(3, paraTokens.length * 0.55);
 
         if (isMatchedBool) dynamicMatchCount++;
 
