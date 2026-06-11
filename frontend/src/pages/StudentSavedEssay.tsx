@@ -127,10 +127,9 @@ export default function StudentSavedEssay() {
         }
     }
         
-    // Use the actual score from the database (graded by AI), fallback to math logic only if null
-    const scoredM = (submission.marks_awarded !== null && submission.marks_awarded !== undefined) 
-        ? submission.marks_awarded 
-        : dynamicallyCalculatedScore;
+    // Always use the frontend's strict math logic to calculate the score on the fly,
+    // so even old submissions reflect the new strict grading and cut marks.
+    const scoredM = dynamicallyCalculatedScore;
         
     const cfPercent = ((scoredM / maxM) * 100).toFixed(2);
 
