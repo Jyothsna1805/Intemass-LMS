@@ -61,15 +61,19 @@ export default function StudentSavedEssay() {
     const tokenise = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
     
     const studentTokensSet = new Set(tokenise(rawStudentText));
-
     let dynamicMatchCount = 0;
     const parsedActualAnswer = stdParagraphs.map((para, idx) => {
         if (!para) return null;
         
         const paraTokens = tokenise(para);
-        const matchedTokens = paraTokens.filter(t => studentTokensSet.has(t)).length;
-        // Increase threshold to 55% overlap of non-stop words to prevent false positives from generic vocabulary
-        const isMatchedBool = paraTokens.length > 0 && matchedTokens >= Math.max(3, paraTokens.length * 0.55);
+        const uniqueParaTokens = new Set(paraTokens);
+        let matchedUnique = 0;
+        for (const t of uniqueParaTokens) {
+            if (studentTokensSet.has(t)) matchedUnique++;
+        }
+        
+        // Use 65% unique token overlap to ensure strict grading and turn wrong points RED
+        const isMatchedBool = uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.65);
 
         if (isMatchedBool) dynamicMatchCount++;
 
