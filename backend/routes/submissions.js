@@ -235,7 +235,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 var advancedFeedback = pythonResult.feedback;
             } else {
                 // Fallback to local math keyword logic
-                const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
+                const splitRegex = /(?=\b\d+\.\s)/g;
                 const stdParagraphs = stdAnsClean.split(splitRegex)
                     .map(p => p.trim())
                     .filter(p => p.length > 0 && !p.toLowerCase().includes('here is the standard answer') && !p.toLowerCase().includes('certainly!'));
@@ -252,7 +252,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                         for (const t of uniqueParaTokens) {
                             if (studentTokensSet.has(t)) matchedUnique++;
                         }
-                        if (uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.85)) matchCount++;
+                        if (uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.70)) matchCount++;
                     }
                     marksAwarded = Math.round((matchCount / stdParagraphs.length) * qMaxMarks);
 

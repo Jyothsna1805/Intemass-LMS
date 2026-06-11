@@ -58,8 +58,8 @@ export default function StudentSavedEssay() {
     const rawStudentText = submission.ocr_text ? submission.ocr_text : stripHtml(submission.answer_text || '');
     const standardText = stripHtml(submission.standard_answer || '');
     
-    // Split by newlines or numbered points (e.g. "1. ", "2. ")
-    const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
+    // Split ONLY by numbered points (e.g. "1. ", "2. ") so internal newlines don't break a point into pieces
+    const splitRegex = /(?=\b\d+\.\s)/g;
     const stdParagraphs = standardText.split(splitRegex)
         .map(p => p.trim())
         .filter(p => p.length > 0 && !p.toLowerCase().includes('here is the standard answer') && !p.toLowerCase().includes('certainly!'));
@@ -79,9 +79,8 @@ export default function StudentSavedEssay() {
             if (studentTokensSet.has(t)) matchedUnique++;
         }
         
-        // Use 85% unique token overlap to ensure ultra-strict grading.
-        // If the student misses even a few unique keywords, the point turns RED.
-        const isMatchedBool = uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.85);
+        // Use 70% unique token overlap to ensure strict grading without being overly punishing.
+        const isMatchedBool = uniqueParaTokens.size > 0 && matchedUnique >= Math.max(3, uniqueParaTokens.size * 0.70);
 
         if (isMatchedBool) dynamicMatchCount++;
 
