@@ -71,23 +71,17 @@ export default function StudentSavedEssay() {
 
         return (
             <div key={idx} className="mb-3 font-semibold text-sm leading-relaxed text-gray-800">
-                {para.split(/(?<=[.!?])\s+/).map((sentence, sIdx) => {
-                    if (!sentence.trim()) return <span key={sIdx}>{sentence} </span>;
-                    
-                    const sentenceTokens = tokenise(sentence);
-                    const matchedTokens = sentenceTokens.filter(t => studentTokensSet.has(t)).length;
-                    const isMatched = sentenceTokens.length > 0 && matchedTokens >= Math.min(2, sentenceTokens.length / 3);
-                    
-                    let colorClass = 'text-gray-800'; // Default
-                    if (studentTokensSet.size > 0) {
-                        if (isMatched) {
-                            colorClass = 'text-green-600 font-bold';
-                        } else {
-                            colorClass = 'text-red-500 font-bold underline';
-                        }
+                {para.split(/(\s+)/).map((wordOrSpace, wIdx) => {
+                    if (!wordOrSpace.trim()) return <span key={wIdx}>{wordOrSpace}</span>;
+                    const cleanWord = wordOrSpace.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (!cleanWord || stopWords.has(cleanWord) || cleanWord.length <= 3) {
+                        return <span key={wIdx}>{wordOrSpace}</span>;
                     }
-                    
-                    return <span key={sIdx} className={colorClass}>{sentence} </span>;
+                    if (studentTokensSet.has(cleanWord)) {
+                        return <span key={wIdx} className="text-green-600 font-bold">{wordOrSpace}</span>;
+                    } else {
+                        return <span key={wIdx} className="text-red-500 font-bold underline">{wordOrSpace}</span>;
+                    }
                 })}
             </div>
         );
@@ -274,23 +268,22 @@ export default function StudentSavedEssay() {
                         <div className="flex divide-x-2 divide-black min-h-[400px]">
                             <div className="p-4 w-[33.333%] text-xs leading-relaxed whitespace-pre-wrap font-serif italic text-gray-800">
                                 {rawStudentText ? (
-                                    rawStudentText.split(/(?<=[.!?])\s+/).map((sentence, idx) => {
-                                        if (!sentence.trim()) return <span key={idx}>{sentence} </span>;
+                                    rawStudentText.split(/(\s+)/).map((wordOrSpace, idx) => {
+                                        if (!wordOrSpace.trim()) {
+                                            return <span key={idx}>{wordOrSpace}</span>;
+                                        }
+                                        const cleanWord = wordOrSpace.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                        if (!cleanWord) return <span key={idx}>{wordOrSpace}</span>;
                                         
-                                        const sentenceTokens = tokenise(sentence);
-                                        const matchedTokens = sentenceTokens.filter(t => stdTokensSet.has(t)).length;
-                                        const isMatched = sentenceTokens.length > 0 && matchedTokens >= Math.min(2, sentenceTokens.length / 3);
-                                        
-                                        let colorClass = 'text-gray-800'; // Default
-                                        if (stdTokensSet.size > 0) {
-                                            if (isMatched) {
+                                        let colorClass = 'text-gray-800'; // Default black/neutral
+                                        if (stdTokensSet.size > 0 && !stopWords.has(cleanWord) && cleanWord.length > 3) {
+                                            if (stdTokensSet.has(cleanWord)) {
                                                 colorClass = 'text-green-600 font-bold not-italic';
                                             } else {
                                                 colorClass = 'text-red-500 font-bold not-italic';
                                             }
                                         }
-                                        
-                                        return <span key={idx} className={colorClass}>{sentence} </span>;
+                                        return <span key={idx} className={colorClass}>{wordOrSpace}</span>;
                                     })
                                 ) : (
                                     <span className="text-gray-400">No answer provided</span>
@@ -303,48 +296,6 @@ export default function StudentSavedEssay() {
                                         <h4 className="font-bold text-gray-700 text-xs uppercase tracking-widest mb-3 border-b border-gray-300 pb-1">Expected Standard Answer</h4>
                                         {parsedActualAnswer}
                                     </div>
-                                    
-                                    {/* If AI provided detailed feedback, show it below the standard answer */}
-                                    {advancedFeedbackObj && advancedFeedbackObj.points_feedback && (
-                                        <div className="space-y-4 pt-4 border-t-2 border-dashed border-gray-300">
-                                            <h4 className="font-bold text-purple-900 text-xs uppercase tracking-widest mb-3">AI Semantic Analysis</h4>
-                                            {advancedFeedbackObj.points_feedback.map((point: any, i: number) => {
-                                                const isCorrect = point.status === 'correct';
-                                                const isPartial = point.status === 'partial';
-                                                const bgColor = isCorrect ? 'bg-green-50' : isPartial ? 'bg-yellow-50' : 'bg-red-50';
-                                                const borderColor = isCorrect ? 'border-green-200' : isPartial ? 'border-yellow-200' : 'border-red-200';
-                                                const textColor = isCorrect ? 'text-green-800' : isPartial ? 'text-yellow-800' : 'text-red-800';
-                                                
-                                                return (
-                                                    <div key={i} className={`p-4 border rounded-md shadow-sm ${bgColor} ${borderColor}`}>
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <span className={`font-bold uppercase text-[10px] tracking-wider px-2 py-1 rounded-sm ${isCorrect ? 'bg-green-200' : isPartial ? 'bg-yellow-200' : 'bg-red-200'} ${textColor}`}>
-                                                                Point {point.id}: {point.status}
-                                                            </span>
-                                                            <span className="text-xs font-bold text-gray-500">Match: {(point.semantic_score * 100).toFixed(0)}%</span>
-                                                        </div>
-                                                        <div className="mb-2 text-sm italic text-gray-700">
-                                                            <span className="font-bold mr-1">Expected:</span>{point.expected}
-                                                        </div>
-                                                        <div className="text-xs leading-relaxed text-gray-800">
-                                                            <span className="font-bold mr-1">Analysis:</span>{point.explanation}
-                                                        </div>
-                                                        {point.suggestion && (
-                                                            <div className="text-xs leading-relaxed text-gray-800 mt-2 font-medium">
-                                                                <span className="font-bold mr-1 text-blue-700">💡 Suggestion:</span>{point.suggestion}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                            {advancedFeedbackObj.overall_feedback && (
-                                                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                                                    <h4 className="font-bold text-blue-900 text-sm mb-2">👨‍🏫 Teacher's Overall Feedback</h4>
-                                                    <p className="text-xs text-blue-800 leading-relaxed">{advancedFeedbackObj.overall_feedback}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                                 <div className="absolute right-0 top-0 h-full w-[150px] flex">
                                     <div className="w-[50px] flex items-start justify-center p-4 font-bold text-sm border-l-2 border-black">{maxM}</div>
