@@ -47,9 +47,16 @@ export default function StudentSavedEssay() {
     const dateStr = dt.toLocaleDateString('en-GB');
     const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
+    // Safely extract plain text without swallowing math symbols like < and >
+    const stripHtml = (htmlStr: string) => {
+        if (!htmlStr) return '';
+        const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+        return doc.body.textContent || "";
+    };
+
     // NLP Sentence Diffing Logic
-    const rawStudentText = submission.ocr_text ? submission.ocr_text : (submission.answer_text ? submission.answer_text.replace(/<[^>]+>/g, '') : '');
-    const standardText = submission.standard_answer ? submission.standard_answer.replace(/<[^>]+>/g, '') : '';
+    const rawStudentText = submission.ocr_text ? submission.ocr_text : stripHtml(submission.answer_text || '');
+    const standardText = stripHtml(submission.standard_answer || '');
     
     // Split by newlines or numbered points (e.g. "1. ", "2. ")
     const splitRegex = /(?:\n+)|(?=\b\d+\.\s)/g;
@@ -103,7 +110,7 @@ export default function StudentSavedEssay() {
         
     // Penalty logic for short factual answers with "shotgun guessing"
     const stdTokensSet = new Set(tokenise(standardText));
-    const questionText = submission.question_text ? submission.question_text.replace(/<[^>]+>/g, '') : '';
+    const questionText = stripHtml(submission.question_text || '');
     const questionTokensSet = new Set(tokenise(questionText));
     
     const isShortAnswer = stdTokensSet.size <= 3;

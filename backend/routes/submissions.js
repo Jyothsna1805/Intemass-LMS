@@ -161,8 +161,14 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
 
         const studentFinalText = ocrText ? ocrText.trim() : (answerText ? answerText.trim() : "");
         
-        let stdAnsClean = stdAns.replace(/<[^>]+>/g, ' ').trim();
-        let studentTextClean = studentFinalText.replace(/<[^>]+>/g, ' ').trim();
+        const safeStripHtml = (str) => {
+            if (!str) return '';
+            // Only strip valid known HTML tags so we don't accidentally swallow math symbols like < 1
+            return str.replace(/<\/?(?:p|b|i|u|br|strong|em|ul|li|ol|div|span|h[1-6])[^>]*>/gi, ' ').trim();
+        };
+
+        let stdAnsClean = safeStripHtml(stdAns);
+        let studentTextClean = safeStripHtml(studentFinalText);
 
         if (stdAnsClean && studentTextClean) {
             let aiUrl = process.env.HF_GRADING_API_URL || 'http://127.0.0.1:5000/grade';
@@ -260,7 +266,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                             const qRes = await execute("SELECT question_text FROM questions WHERE id = ?", [questionId]);
                             if (qRes.length > 0) questionTextStr = qRes[0].question_text || "";
                         }
-                        const questionTokensSet = new Set(tokenise(questionTextStr.replace(/<[^>]+>/g, ' ')));
+                        const questionTokensSet = new Set(tokenise(safeStripHtml(questionTextStr)));
                         let guessingTokensCount = 0;
                         for (const t of studentTokensSet) {
                             if (!stdTokensSet.has(t) && !questionTokensSet.has(t)) guessingTokensCount++;
