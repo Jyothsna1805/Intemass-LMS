@@ -48,9 +48,11 @@ export default function StudentSavedEssay() {
     const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
     // Safely extract plain text without swallowing math symbols like < and >
+    // And preserve line breaks from <br> and <p> tags
     const stripHtml = (htmlStr: string) => {
         if (!htmlStr) return '';
-        const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+        let withNewlines = htmlStr.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n');
+        const doc = new DOMParser().parseFromString(withNewlines, 'text/html');
         return doc.body.textContent || "";
     };
 

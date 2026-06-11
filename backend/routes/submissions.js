@@ -163,8 +163,10 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         
         const safeStripHtml = (str) => {
             if (!str) return '';
+            // Preserve line breaks from HTML paragraphs before stripping
+            let text = str.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n');
             // Only strip valid known HTML tags so we don't accidentally swallow math symbols like < 1
-            return str.replace(/<\/?(?:p|b|i|u|br|strong|em|ul|li|ol|div|span|h[1-6])[^>]*>/gi, ' ').trim();
+            return text.replace(/<\/?(?:p|b|i|u|br|strong|em|ul|li|ol|div|span|h[1-6])[^>]*>/gi, ' ').trim();
         };
 
         let stdAnsClean = safeStripHtml(stdAns);
