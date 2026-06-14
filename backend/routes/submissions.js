@@ -175,71 +175,8 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         let studentTextClean = safeStripHtml(studentFinalText);
 
         if (stdAnsClean && studentTextClean) {
-            let aiUrl = process.env.HF_GRADING_API_URL || 'http://127.0.0.1:5000/grade';
-            console.log("Attempting to use AI URL:", aiUrl);
-            let pythonResult = { score: null, feedback: null };
-            
-            if (aiUrl) {
-                const http = aiUrl.startsWith('https') ? require('https') : require('http');
-                const url = require('url');
-                const parsedUrl = url.parse(aiUrl);
-                const postData = JSON.stringify({
-                    student_answer: studentTextClean,
-                    model_answer: stdAnsClean,
-                    max_marks: qMaxMarks
-                });
-                
-                const options = {
-                    hostname: parsedUrl.hostname,
-                    port: parsedUrl.port || (aiUrl.startsWith('https') ? 443 : 80),
-                    path: parsedUrl.path,
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Content-Length': Buffer.byteLength(postData)
-                    }
-                };
-
-                try {
-                    const parsed = await new Promise((resolve, reject) => {
-                        const req = http.request(options, (res) => {
-                            let body = '';
-                            res.on('data', (chunk) => body += chunk);
-                            res.on('end', () => {
-                                try {
-                                    resolve(JSON.parse(body));
-                                } catch (e) {
-                                    reject(e);
-                                }
-                            });
-                        });
-                        req.on('error', (e) => reject(e));
-                        req.setTimeout(15000, () => {
-                            req.destroy();
-                            reject(new Error('AI API request timed out'));
-                        });
-                        req.write(postData);
-                        req.end();
-                    });
-                    
-                    if (parsed.success && parsed.data) {
-                        pythonResult = { score: parsed.data.score, feedback: JSON.stringify(parsed.data) };
-                    } else {
-                        console.error('AI API Error in parsed data:', parsed.error);
-                    }
-                } catch (e) {
-                    console.error('Failed to call AI API:', e.message);
-                }
-            } else {
-                console.log("AI_GRADING_API_URL is undefined, falling back to math logic.");
-            }
-            
-            if (pythonResult.score !== null) {
-                marksAwarded = pythonResult.score;
-                var advancedFeedback = pythonResult.feedback;
-            } else {
-                // Fallback to local math keyword logic
-                let splitRegex = /\n+/g;
+            // Force fallback to local math keyword logic to perfectly match frontend
+            let splitRegex = /\n+/g;
                 if (/\b\d+\.\s/.test(stdAnsClean)) {
                     splitRegex = /(?=\b\d+\.\s)/g;
                 } else if (/\(\d+\s*marks?\)/i.test(stdAnsClean)) {
@@ -272,6 +209,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                         if (uniqueParaTokens.size > 0 && baseMatch >= 0.65) matchCount++;
                     }
                     marksAwarded = Math.round((matchCount / stdParagraphs.length) * qMaxMarks);
+                    var advancedFeedback = JSON.stringify({ debug: "LOCAL_MATH_LOGIC", stdAnsClean, studentTextClean });
 
                     const stdTokensSet = new Set(tokenise(stdAnsClean));
                     if (stdTokensSet.size <= 3 && marksAwarded > 0) {
