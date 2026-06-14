@@ -47,11 +47,11 @@ export default function StudentSavedEssay() {
     const dateStr = dt.toLocaleDateString('en-GB');
     const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
-    // Safely extract plain text without swallowing math symbols like < and >
-    // And preserve line breaks from <br> and <p> tags
     const stripHtml = (htmlStr: string) => {
         if (!htmlStr) return '';
-        let withNewlines = htmlStr.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n');
+        let withNewlines = htmlStr
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n\n');
         const doc = new DOMParser().parseFromString(withNewlines, 'text/html');
         return doc.body.textContent || "";
     };
@@ -60,11 +60,14 @@ export default function StudentSavedEssay() {
     const rawStudentText = submission.ocr_text ? submission.ocr_text : stripHtml(submission.answer_text || '');
     const standardText = stripHtml(submission.standard_answer || '');
     
-    // Split intelligently: If the teacher used numbered points, strictly split by numbers (ignoring internal newlines).
-    // If the teacher didn't use numbers, fallback to splitting by newlines.
+    // Split intelligently: If the teacher used numbered points, strictly split by numbers.
+    // If no numbers, but they used "(X marks)" indicators, split after those.
+    // Otherwise, fallback to splitting by newlines.
     let splitRegex = /\n+/g;
     if (/\b\d+\.\s/.test(standardText)) {
         splitRegex = /(?=\b\d+\.\s)/g;
+    } else if (/\(\d+\s*marks?\)/i.test(standardText)) {
+        splitRegex = /(?<=\(\d+\s*marks?\))\s*/ig;
     }
     const stdParagraphs = standardText.split(splitRegex)
         .map(p => p.trim())

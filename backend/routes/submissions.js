@@ -163,10 +163,12 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         
         const safeStripHtml = (str) => {
             if (!str) return '';
-            // Preserve line breaks from HTML paragraphs before stripping
-            let text = str.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n');
+            // Preserve line breaks from HTML block elements before stripping
+            let text = str
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n\n');
             // Only strip valid known HTML tags so we don't accidentally swallow math symbols like < 1
-            return text.replace(/<\/?(?:p|b|i|u|br|strong|em|ul|li|ol|div|span|h[1-6])[^>]*>/gi, ' ').trim();
+            return text.replace(/<\/?(?:p|b|i|u|br|strong|em|ul|li|ol|div|span|h[1-6]|tr|td|th|table|tbody|thead)[^>]*>/gi, ' ').trim();
         };
 
         let stdAnsClean = safeStripHtml(stdAns);
@@ -240,6 +242,8 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 let splitRegex = /\n+/g;
                 if (/\b\d+\.\s/.test(stdAnsClean)) {
                     splitRegex = /(?=\b\d+\.\s)/g;
+                } else if (/\(\d+\s*marks?\)/i.test(stdAnsClean)) {
+                    splitRegex = /(?<=\(\d+\s*marks?\))\s*/ig;
                 }
                 const stdParagraphs = stdAnsClean.split(splitRegex)
                     .map(p => p.trim())
