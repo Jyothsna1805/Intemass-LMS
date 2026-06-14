@@ -237,7 +237,10 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 var advancedFeedback = pythonResult.feedback;
             } else {
                 // Fallback to local math keyword logic
-                const splitRegex = /(?=\b\d+\.\s)/g;
+                let splitRegex = /\n+/g;
+                if (/\b\d+\.\s/.test(stdAnsClean)) {
+                    splitRegex = /(?=\b\d+\.\s)/g;
+                }
                 const stdParagraphs = stdAnsClean.split(splitRegex)
                     .map(p => p.trim())
                     .filter(p => p.length > 0 && !p.toLowerCase().includes('here is the standard answer') && !p.toLowerCase().includes('certainly!'));

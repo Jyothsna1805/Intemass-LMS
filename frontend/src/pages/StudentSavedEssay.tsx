@@ -60,8 +60,12 @@ export default function StudentSavedEssay() {
     const rawStudentText = submission.ocr_text ? submission.ocr_text : stripHtml(submission.answer_text || '');
     const standardText = stripHtml(submission.standard_answer || '');
     
-    // Split ONLY by numbered points (e.g. "1. ", "2. ") so internal newlines don't break a point into pieces
-    const splitRegex = /(?=\b\d+\.\s)/g;
+    // Split intelligently: If the teacher used numbered points, strictly split by numbers (ignoring internal newlines).
+    // If the teacher didn't use numbers, fallback to splitting by newlines.
+    let splitRegex = /\n+/g;
+    if (/\b\d+\.\s/.test(standardText)) {
+        splitRegex = /(?=\b\d+\.\s)/g;
+    }
     const stdParagraphs = standardText.split(splitRegex)
         .map(p => p.trim())
         .filter(p => p.length > 0 && !p.toLowerCase().includes('here is the standard answer') && !p.toLowerCase().includes('certainly!'));
