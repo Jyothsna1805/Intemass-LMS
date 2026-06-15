@@ -239,11 +239,8 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                     stdAnsClean,
                     studentTextClean,
                     matchCount: matchCount || 0,
-                    stdParagraphsLength: stdParagraphs.length,
-                    pythonResult,
-                    aiUrl
+                    stdParagraphsLength: stdParagraphs.length
                 });
-            }
         } else {
             marksAwarded = 0;
             var advancedFeedback = JSON.stringify({ debug: "SKIPPED_IF_BLOCK", stdAnsClean, studentTextClean });
