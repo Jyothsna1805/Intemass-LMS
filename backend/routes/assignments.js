@@ -145,4 +145,28 @@ router.get('/:id/submissions', authenticate, authorize('teacher'), async (req, r
     }
 });
 
+// Temporary endpoint to clear old assignments for the demo
+router.get('/danger/clear-all', async (req, res) => {
+    try {
+        if (process.env.DB_TYPE === 'postgres') {
+            // Keep the most recent assignment, delete the rest
+            const result = await query("SELECT id FROM assignments ORDER BY created_at DESC LIMIT 1");
+            if (result.length > 0) {
+                const keepId = result[0].id;
+                await execute("DELETE FROM submissions WHERE assignment_id != $1", [keepId]);
+                await execute("DELETE FROM assignment_questions WHERE assignment_id != $1", [keepId]);
+                await execute("DELETE FROM assignments WHERE id != $1", [keepId]);
+                res.send("Cleared all old assignments. Kept 1 recent assignment.");
+            } else {
+                res.send("No assignments found to clear.");
+            }
+        } else {
+            res.send("This endpoint is only for the live postgres database.");
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Error clearing assignments");
+    }
+});
+
 module.exports = router;
