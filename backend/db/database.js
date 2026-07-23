@@ -38,6 +38,9 @@ const initDb = async () => {
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS extracted_diagram_url VARCHAR(500)');
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS ocr_text TEXT');
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS topology_json TEXT');
+                await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS reassessment_status VARCHAR(20) DEFAULT \'none\'');
+                await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS reassessment_request TEXT');
+                await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS reassessment_teacher_comment TEXT');
             } catch (err) {
                 console.error("Error adding columns:", err);
             }

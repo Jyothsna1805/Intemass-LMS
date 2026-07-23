@@ -334,6 +334,86 @@ router.get('/student/my_submissions', authenticate, authorize('student'), async 
     }
 });
 
+// Get pending reassessments (Teacher)
+router.get('/reassessments/pending', authenticate, authorize('teacher'), async (req, res) => {
+    try {
+        let pending;
+        if (process.env.DB_TYPE === 'postgres') {
+            pending = await query(`
+                SELECT s.id, s.reassessment_request, s.submitted_at, s.marks_awarded, p.full_name as student_name, q.question_text, a.title as assignment_title
+                FROM submissions s
+                JOIN profiles p ON s.student_id = p.user_id
+                JOIN questions q ON s.question_id = q.id
+                JOIN assignments a ON s.assignment_id = a.id
+                WHERE s.reassessment_status = 'requested' AND a.teacher_id = $1
+                ORDER BY s.submitted_at DESC
+            `, [req.user.id]);
+        } else {
+            pending = await query(`
+                SELECT s.id, s.reassessment_request, s.submitted_at, s.marks_awarded, p.full_name as student_name, q.question_text, a.title as assignment_title
+                FROM submissions s
+                JOIN profiles p ON s.student_id = p.user_id
+                JOIN questions q ON s.question_id = q.id
+                JOIN assignments a ON s.assignment_id = a.id
+                WHERE s.reassessment_status = 'requested' AND a.teacher_id = ?
+                ORDER BY s.submitted_at DESC
+            `, [req.user.id]);
+        }
+        res.json(pending);
+    } catch (error) {
+        console.error("Error fetching pending reassessments:", error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Request reassessment (Student)
+router.post('/:id/reassess', authenticate, authorize('student'), async (req, res) => {
+    const { id } = req.params;
+    const { request_data } = req.body;
+
+    try {
+        if (process.env.DB_TYPE === 'postgres') {
+            await execute(
+                "UPDATE submissions SET reassessment_status = 'requested', reassessment_request = $1 WHERE id = $2 AND student_id = $3",
+                [request_data, id, req.user.id]
+            );
+        } else {
+            await execute(
+                "UPDATE submissions SET reassessment_status = 'requested', reassessment_request = ? WHERE id = ? AND student_id = ?",
+                [request_data, id, req.user.id]
+            );
+        }
+        res.json({ message: 'Reassessment requested successfully' });
+    } catch (error) {
+        console.error("Error requesting reassessment:", error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Resolve reassessment (Teacher)
+router.put('/:id/reassess', authenticate, authorize('teacher'), async (req, res) => {
+    const { id } = req.params;
+    const { marks, teacher_comment } = req.body;
+
+    try {
+        if (process.env.DB_TYPE === 'postgres') {
+            await execute(
+                "UPDATE submissions SET marks_awarded = $1, reassessment_teacher_comment = $2, reassessment_status = 'reviewed' WHERE id = $3",
+                [marks, teacher_comment, id]
+            );
+        } else {
+            await execute(
+                "UPDATE submissions SET marks_awarded = ?, reassessment_teacher_comment = ?, reassessment_status = 'reviewed' WHERE id = ?",
+                [marks, teacher_comment, id]
+            );
+        }
+        res.json({ message: 'Reassessment resolved successfully' });
+    } catch (error) {
+        console.error("Error resolving reassessment:", error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Retrieve a submission
 router.get('/:id', authenticate, async (req, res) => {
     const { id } = req.params;

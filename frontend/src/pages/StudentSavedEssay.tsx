@@ -17,6 +17,9 @@ interface SubmissionDetail {
     max_marks?: number;
     ocr_text?: string;
     submitted_at?: string;
+    reassessment_status?: string;
+    reassessment_request?: string;
+    reassessment_teacher_comment?: string;
 }
 
 export default function StudentSavedEssay() {
@@ -27,6 +30,11 @@ export default function StudentSavedEssay() {
     const [error, setError] = useState('');
     const [showDetailedReport, setShowDetailedReport] = useState(false);
     const [activeFeedback, setActiveFeedback] = useState<string | null>(null);
+
+    // Reassessment State
+    const [checkedPoints, setCheckedPoints] = useState<number[]>([]);
+    const [reassessmentReason, setReassessmentReason] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         const fetchSubmission = async () => {
@@ -40,6 +48,34 @@ export default function StudentSavedEssay() {
         };
         fetchSubmission();
     }, [id]);
+
+    const handleCheckboxChange = (idx: number) => {
+        setCheckedPoints(prev => 
+            prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+        );
+    };
+
+    const submitReassessment = async () => {
+        if (checkedPoints.length === 0) {
+            alert('Please select at least one point to reassess.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const request_data = JSON.stringify({
+                points: checkedPoints,
+                reason: reassessmentReason
+            });
+            await api.post(`/submissions/${id}/reassess`, { request_data });
+            setSubmission(prev => prev ? { ...prev, reassessment_status: 'requested', reassessment_request: request_data } : null);
+            alert('Reassessment request submitted successfully!');
+        } catch (err) {
+            console.error(err);
+            alert('Failed to submit reassessment request.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     if (!submission) return <div className="p-12 text-center text-primary-900 font-black uppercase tracking-widest text-sm">Loading details...</div>;
 
@@ -113,9 +149,23 @@ export default function StudentSavedEssay() {
             }
         }
 
+        const isMissed = studentTokensSet.size > 0 && !isMatchedBool;
+        
         return (
             <div key={idx} className={`mb-4 font-semibold text-sm leading-relaxed whitespace-pre-wrap ${colorClass}`}>
                 {para}
+                {isMissed && submission.reassessment_status !== 'requested' && submission.reassessment_status !== 'reviewed' && (
+                    <div className="mt-2 text-xs text-gray-600 flex items-center gap-2">
+                        <input 
+                            type="checkbox" 
+                            id={`reassess-${idx}`}
+                            checked={checkedPoints.includes(idx)}
+                            onChange={() => handleCheckboxChange(idx)}
+                            className="cursor-pointer h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor={`reassess-${idx}`} className="cursor-pointer">Request reassessment for this point</label>
+                    </div>
+                )}
             </div>
         );
     });
@@ -312,6 +362,42 @@ export default function StudentSavedEssay() {
                                         <h4 className="font-bold text-gray-700 text-xs uppercase tracking-widest mb-3 border-b border-gray-300 pb-1">Expected Standard Answer</h4>
                                         {parsedActualAnswer}
                                     </div>
+                                    
+                                    {/* Reassessment Submission Form */}
+                                    {submission.reassessment_status === 'requested' && (
+                                        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                                            <p className="font-bold">Reassessment Requested</p>
+                                            <p>Your request is currently pending review by your teacher.</p>
+                                        </div>
+                                    )}
+                                    {submission.reassessment_status === 'reviewed' && (
+                                        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded text-sm text-green-900">
+                                            <p className="font-bold">Reassessment Reviewed</p>
+                                            <p><strong>Teacher Comment:</strong> {submission.reassessment_teacher_comment}</p>
+                                        </div>
+                                    )}
+                                    {!submission.reassessment_status || submission.reassessment_status === 'none' ? (
+                                        checkedPoints.length > 0 && (
+                                            <div className="mt-6 p-4 border border-gray-300 rounded bg-gray-50 shadow-sm">
+                                                <h4 className="font-bold text-gray-700 text-xs uppercase tracking-widest mb-2">Reassessment Request</h4>
+                                                <p className="text-xs text-gray-600 mb-3">You have selected {checkedPoints.length} point(s) to challenge.</p>
+                                                <textarea 
+                                                    className="w-full text-sm border-gray-300 p-2 border rounded focus:ring-primary-500 focus:border-primary-500" 
+                                                    rows={3} 
+                                                    placeholder="Please explain why you believe you deserve marks for these points..."
+                                                    value={reassessmentReason}
+                                                    onChange={(e) => setReassessmentReason(e.target.value)}
+                                                ></textarea>
+                                                <button 
+                                                    onClick={submitReassessment}
+                                                    disabled={isSubmitting || !reassessmentReason.trim()}
+                                                    className="mt-3 bg-primary-600 text-white text-xs font-bold uppercase tracking-widest px-4 py-2 rounded shadow hover:bg-primary-700 disabled:opacity-50"
+                                                >
+                                                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                                                </button>
+                                            </div>
+                                        )
+                                    ) : null}
                                 </div>
                                 <div className="absolute right-0 top-0 h-full w-[150px] flex">
                                     <div className="w-[50px] flex items-start justify-center p-4 font-bold text-sm border-l-2 border-black">{maxM}</div>

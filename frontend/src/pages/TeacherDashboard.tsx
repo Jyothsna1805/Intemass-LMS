@@ -13,7 +13,8 @@ export default function TeacherDashboard() {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [loading, setLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'modules' | 'databank'>('modules');
+    const [activeTab, setActiveTab] = useState<'modules' | 'databank' | 'reassessments'>('modules');
+    const [pendingReassessments, setPendingReassessments] = useState<any[]>([]);
 
     // Create Module state
     const [title, setTitle] = useState('');
@@ -35,12 +36,14 @@ export default function TeacherDashboard() {
 
     const fetchData = async () => {
         try {
-            const [qs, as] = await Promise.all([
+            const [qs, as, pr] = await Promise.all([
                 api.get('/questions'),
-                api.get('/assignments')
+                api.get('/assignments'),
+                api.get('/submissions/reassessments/pending')
             ]);
             setQuestions(qs.data);
             setAssignments(as.data);
+            setPendingReassessments(pr.data);
         } catch (err) {
             console.error(err);
         }
@@ -133,6 +136,12 @@ export default function TeacherDashboard() {
                         className={`pb-4 text-sm font-black uppercase tracking-widest transition border-b-4 ${activeTab === 'databank' ? 'border-primary-900 text-primary-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                         Answer Databank
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('reassessments')}
+                        className={`pb-4 text-sm font-black uppercase tracking-widest transition border-b-4 ${activeTab === 'reassessments' ? 'border-primary-900 text-primary-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    >
+                        Reassessments {pendingReassessments.length > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-0.5 ml-1 text-[10px]">{pendingReassessments.length}</span>}
                     </button>
                 </div>
 
@@ -290,6 +299,39 @@ export default function TeacherDashboard() {
                                     <div className="text-center py-12 text-gray-400 text-xs font-bold uppercase tracking-widest">No questions found for this subject.</div>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                )}
+                
+                {activeTab === 'reassessments' && (
+                    <div className="bg-white p-8 rounded-sm shadow-sm border border-gray-100">
+                        <h1 className="text-2xl font-extrabold text-gray-900 mb-8 flex items-center gap-3">
+                            <BookOpen className="text-primary-700" size={28} /> Pending Reassessments
+                        </h1>
+                        <div className="space-y-4">
+                            {pendingReassessments.map(req => (
+                                <div key={req.id} className="border border-gray-200 p-5 rounded-sm bg-gray-50 flex justify-between items-center hover:bg-white transition shadow-sm cursor-pointer"
+                                     onClick={() => navigate(`/teacher/submissions/${req.id}`)}
+                                >
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="bg-yellow-500 text-white text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-sm shadow-sm">
+                                                Reassessment
+                                            </span>
+                                            <span className="text-xs font-bold text-gray-700">{req.student_name}</span>
+                                            <span className="text-xs text-gray-500">• {req.assignment_title}</span>
+                                        </div>
+                                        <p className="text-sm font-medium text-gray-900 line-clamp-2" dangerouslySetInnerHTML={{ __html: req.question_text }} />
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs font-bold text-gray-500 uppercase">Current Score</div>
+                                        <div className="text-xl font-black text-gray-900">{req.marks_awarded}</div>
+                                    </div>
+                                </div>
+                            ))}
+                            {pendingReassessments.length === 0 && (
+                                <div className="text-center py-12 text-gray-400 text-xs font-bold uppercase tracking-widest">No pending reassessments! You're all caught up.</div>
+                            )}
                         </div>
                     </div>
                 )}
