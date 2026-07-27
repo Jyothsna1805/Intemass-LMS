@@ -4,7 +4,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Save, Bell, ShoppingCart, Bot } from 'lucide-react';
 
-interface SubmissionDetail { id: string; answer_text: string; marks_awarded: number | null; feedback: string | null; student_name: string; question_text: string; standard_answer: string | null; file_url: string | null; extracted_diagram_url: string | null; assignment_id: string; max_marks: number | null; topology_json: string | null; }
+interface SubmissionDetail { id: string; answer_text: string; marks_awarded: number | null; feedback: string | null; student_name: string; question_text: string; standard_answer: string | null; file_url: string | null; extracted_diagram_url: string | null; assignment_id: string; max_marks: number | null; topology_json: string | null; reassessment_status?: string; reassessment_request?: string; reassessment_teacher_comment?: string; }
 
 export default function TeacherMarking() {
     const { id } = useParams() as { id: string };
@@ -15,6 +15,20 @@ export default function TeacherMarking() {
     const [feedback, setFeedback] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [reassessmentComment, setReassessmentComment] = useState('');
+
+    const handleResolveReassessment = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (marks === '') { setError('Please enter updated marks.'); return; }
+        setSubmitting(true); setError('');
+        try {
+            await api.put(`/submissions/${id}/reassess`, { 
+                marks_awarded: Number(marks), 
+                reassessment_teacher_comment: reassessmentComment || 'Reassessment reviewed.'
+            });
+            navigate('/teacher-dashboard');
+        } catch (err) { console.error(err); setError('Failed to resolve reassessment.'); } finally { setSubmitting(false); }
+    };
 
     useEffect(() => {
         const fetchSubmission = async () => {
@@ -127,7 +141,7 @@ export default function TeacherMarking() {
                         </h3>
                         {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-xs font-bold border border-red-200">{error}</div>}
 
-                        <form onSubmit={handleSave} className="space-y-6">
+                        <form onSubmit={submission.reassessment_status === 'requested' ? handleResolveReassessment : handleSave} className="space-y-6">
 
                             {/* Simulated Auto-Marking AI for Diagrams */}
                             {submission.extracted_diagram_url && (
@@ -192,20 +206,44 @@ export default function TeacherMarking() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Tutor Feedback</label>
-                                <textarea
-                                    rows={8}
-                                    className="w-full border border-gray-300 p-3 focus:border-primary-500 text-sm outline-none"
-                                    placeholder="Provide constructive feedback here..."
-                                    value={feedback} onChange={(e) => setFeedback(e.target.value)}
-                                />
-                            </div>
-                            <button type="submit" disabled={submitting} className="w-full flex justify-center items-center gap-2 bg-green-500 text-white px-6 py-3 font-bold uppercase tracking-widest hover:bg-green-600 transition disabled:opacity-50 shadow-md">
-                                <Save size={16} /> {submitting ? 'Saving...' : 'Lock Evaluation'}
-                            </button>
-                        </form>
+                                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Tutor Feedback</label>
+                                    <textarea
+                                        rows={submission.reassessment_status === 'requested' ? 4 : 8}
+                                        className="w-full border border-gray-300 p-3 focus:border-primary-500 text-sm outline-none"
+                                        placeholder="Provide constructive feedback here..."
+                                        value={feedback} onChange={(e) => setFeedback(e.target.value)}
+                                        disabled={submission.reassessment_status === 'requested'}
+                                    />
+                                </div>
+                                
+                                {submission.reassessment_status === 'requested' && (
+                                    <div className="bg-yellow-50 border border-yellow-200 p-4 shadow-sm">
+                                        <h4 className="text-[10px] font-black text-yellow-800 uppercase tracking-widest mb-2">Student Reassessment Request</h4>
+                                        <div className="text-sm text-yellow-900 mb-3 bg-white p-3 border border-yellow-100 rounded italic">
+                                            {(() => {
+                                                try {
+                                                    const req = JSON.parse(submission.reassessment_request || '{}');
+                                                    return req.reason || 'No reason provided by student.';
+                                                } catch(e) { return String(submission.reassessment_request); }
+                                            })()}
+                                        </div>
+                                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Resolution Comment</label>
+                                        <textarea
+                                            rows={4}
+                                            className="w-full border border-gray-300 p-3 focus:border-primary-500 text-sm outline-none bg-white"
+                                            placeholder="Explain why you are changing (or not changing) the marks..."
+                                            value={reassessmentComment} onChange={(e) => setReassessmentComment(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                )}
+                                
+                                <button type="submit" disabled={submitting} className={`w-full flex justify-center items-center gap-2 text-white px-6 py-3 font-bold uppercase tracking-widest transition disabled:opacity-50 shadow-md ${submission.reassessment_status === 'requested' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-500 hover:bg-green-600'}`}>
+                                    <Save size={16} /> {submitting ? 'Saving...' : (submission.reassessment_status === 'requested' ? 'Resolve Reassessment' : 'Lock Evaluation')}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
             </div>
         </div>
     );
