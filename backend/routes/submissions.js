@@ -393,7 +393,9 @@ router.post('/:id/reassess', authenticate, authorize('student'), async (req, res
 // Resolve reassessment (Teacher)
 router.put('/:id/reassess', authenticate, authorize('teacher'), async (req, res) => {
     const { id } = req.params;
-    const { marks, teacher_comment } = req.body;
+    const { marks_awarded, reassessment_teacher_comment } = req.body;
+    const marks = marks_awarded;
+    const teacher_comment = reassessment_teacher_comment;
 
     try {
         if (process.env.DB_TYPE === 'postgres') {
