@@ -7,18 +7,23 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setLoading(true);
+        setError('');
         try {
             const response = await api.post('/auth/login', { email, password });
             login(response.data.token, response.data.user);
             navigate(`/${response.data.user.role}-dashboard`);
         } catch (err) {
             const error = err as { response?: { data?: { error?: string } } };
-            setError(error.response?.data?.error || 'Login failed');
+            setError(error.response?.data?.error || 'Login failed. Server may be starting up — please try again in 30 seconds.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -79,9 +84,10 @@ export default function Login() {
                     <div>
                         <button
                             type="submit"
-                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold uppercase tracking-widest text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors shadow-sm"
+                            disabled={loading}
+                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold uppercase tracking-widest text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            Start Session
+                            {loading ? '⏳ Signing in... (server waking up)' : 'Start Session'}
                         </button>
                     </div>
 
