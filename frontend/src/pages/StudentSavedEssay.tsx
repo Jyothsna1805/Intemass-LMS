@@ -208,9 +208,9 @@ export default function StudentSavedEssay() {
         }
     }
         
-    // If teacher has reviewed a reassessment, their marks are final — override dynamic calculation
-    const scoredM = (submission.reassessment_status === 'reviewed' && submission.marks_awarded !== null && submission.marks_awarded !== undefined)
-        ? submission.marks_awarded
+    // If teacher has assigned or updated marks (including reassessment), their marks are final
+    const scoredM = (submission.marks_awarded !== null && submission.marks_awarded !== undefined)
+        ? Number(submission.marks_awarded)
         : dynamicallyCalculatedScore;
         
     const cfPercent = ((scoredM / maxM) * 100).toFixed(2);
