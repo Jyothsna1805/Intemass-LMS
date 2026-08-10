@@ -1,16 +1,20 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, ShoppingCart } from 'lucide-react';
+import { Bell, ShoppingCart, BookOpen, Users, Phone, HelpCircle, Info, Mail, MapPin, ChevronDown } from 'lucide-react';
 
 export default function Landing() {
     const navigate = useNavigate();
     const { token, logout } = useAuth();
 
+    const scrollTo = (id: string) => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     return (
         <div className="min-h-screen bg-white font-sans text-gray-800">
-            {/* HERO SECTION WITH BACKGROUND AND GRADIENT OVERLAY */}
+
+            {/* HERO SECTION */}
             <div className="relative overflow-hidden bg-primary-900 pb-32 pt-6 sm:pb-40">
-                {/* Background image overlay */}
                 <div className="absolute inset-0">
                     <img
                         src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"
@@ -31,23 +35,20 @@ export default function Landing() {
                     {/* NAVIGATION BAR */}
                     <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="flex h-16 items-center justify-between">
-                            {/* Logo */}
                             <div className="flex-shrink-0 flex items-center gap-2">
                                 <img src="/logo.png" alt="MegaForte" className="h-16 w-16 object-contain bg-white rounded-full shadow-lg p-1" />
                             </div>
 
-                            {/* Desktop Navigation Links */}
                             <div className="hidden md:block">
                                 <ul className="flex items-center space-x-6 text-sm font-semibold text-white/90">
-                                    <li><a href="#" className="hover:text-white transition">ABOUT US</a></li>
-                                    <li><a href="#" className="hover:text-white transition">COURSES</a></li>
-                                    <li><a href="#" className="hover:text-white transition">e-EDUCATORS</a></li>
-                                    <li><a href="#" className="hover:text-white transition">CONTACT US</a></li>
-                                    <li><a href="#" className="hover:text-white transition">SUPPORT</a></li>
+                                    <li><button onClick={() => scrollTo('about')} className="hover:text-white transition">ABOUT US</button></li>
+                                    <li><button onClick={() => scrollTo('courses')} className="hover:text-white transition">COURSES</button></li>
+                                    <li><button onClick={() => scrollTo('educators')} className="hover:text-white transition">e-EDUCATORS</button></li>
+                                    <li><button onClick={() => scrollTo('contact')} className="hover:text-white transition">CONTACT US</button></li>
+                                    <li><button onClick={() => scrollTo('support')} className="hover:text-white transition">SUPPORT</button></li>
                                 </ul>
                             </div>
 
-                            {/* Right Actions */}
                             <div className="hidden lg:flex items-center gap-6">
                                 <div className="flex items-center gap-4 text-white/90">
                                     <Bell size={18} className="cursor-pointer hover:text-white transition" />
@@ -61,24 +62,15 @@ export default function Landing() {
                                         Account
                                     </button>
                                     {token ? (
-                                        <button
-                                            onClick={logout}
-                                            className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase rounded hover:bg-green-600 transition"
-                                        >
+                                        <button onClick={logout} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase rounded hover:bg-green-600 transition">
                                             Signout
                                         </button>
                                     ) : (
-                                        <button
-                                            onClick={() => navigate('/login')}
-                                            className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase rounded hover:bg-green-600 transition"
-                                        >
+                                        <button onClick={() => navigate('/login')} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase rounded hover:bg-green-600 transition">
                                             Login
                                         </button>
                                     )}
-                                    <button
-                                        onClick={() => navigate('/login')}
-                                        className="bg-blue-500 text-white px-6 py-1.5 text-sm font-bold rounded hover:bg-blue-600 transition ml-2 shadow-lg hover:shadow-xl"
-                                    >
+                                    <button onClick={() => navigate('/login')} className="bg-blue-500 text-white px-6 py-1.5 text-sm font-bold rounded hover:bg-blue-600 transition ml-2 shadow-lg hover:shadow-xl">
                                         Start Here
                                     </button>
                                 </div>
@@ -95,9 +87,12 @@ export default function Landing() {
                             <p className="mt-6 max-w-2xl text-lg text-white/80 leading-relaxed font-medium mix-blend-screen drop-shadow-md">
                                 We provide students with powerful diagnostics to direct students towards getting high grades for their examinations.
                             </p>
-                            <div className="mt-10">
-                                <button className="rounded-full border border-white/80 bg-transparent px-8 py-3 text-base font-semibold text-white shadow-sm hover:bg-white/10 transition backdrop-blur-sm">
+                            <div className="mt-10 flex gap-4">
+                                <button onClick={() => scrollTo('about')} className="rounded-full border border-white/80 bg-transparent px-8 py-3 text-base font-semibold text-white shadow-sm hover:bg-white/10 transition backdrop-blur-sm">
                                     LEARN MORE
+                                </button>
+                                <button onClick={() => navigate('/login')} className="rounded-full bg-green-500 px-8 py-3 text-base font-semibold text-white shadow-sm hover:bg-green-600 transition">
+                                    GET STARTED
                                 </button>
                             </div>
                         </div>
@@ -105,8 +100,220 @@ export default function Landing() {
                 </div>
             </div>
 
-            {/* SPACER FOR WAVE COMPONENT TO OVERLAY EXACTLY LIKE THE MOCKUP */}
-            <div className="h-32 bg-white"></div>
+            {/* SPACER */}
+            <div className="h-16 bg-white"></div>
+
+            {/* ABOUT US SECTION */}
+            <section id="about" className="py-20 bg-white">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Info size={28} className="text-primary-700" />
+                        <h2 className="text-3xl font-extrabold text-primary-900 uppercase tracking-widest">About Us</h2>
+                    </div>
+                    <div className="w-16 h-1 bg-green-500 mb-10"></div>
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h3 className="text-2xl font-bold text-gray-800 mb-4">Empowering Students with AI-Powered Learning</h3>
+                            <p className="text-gray-600 leading-relaxed mb-4">
+                                INTEMASS LMS by MegaForte is a cutting-edge Learning Management System designed to help students prepare for Singapore PSLE, IGCSE, IBDP, and other major international examinations.
+                            </p>
+                            <p className="text-gray-600 leading-relaxed mb-4">
+                                Our platform combines the expertise of experienced educators with advanced AI grading technology to provide students with instant, detailed feedback on their essay and short-answer responses.
+                            </p>
+                            <p className="text-gray-600 leading-relaxed">
+                                We believe every student deserves personalised feedback to understand their strengths and areas for improvement — making high exam scores achievable for all.
+                            </p>
+                            <div className="mt-8 grid grid-cols-3 gap-4">
+                                <div className="text-center p-4 bg-primary-50 rounded-lg">
+                                    <div className="text-3xl font-black text-primary-700">500+</div>
+                                    <div className="text-xs font-semibold text-gray-500 mt-1 uppercase">Students</div>
+                                </div>
+                                <div className="text-center p-4 bg-green-50 rounded-lg">
+                                    <div className="text-3xl font-black text-green-700">50+</div>
+                                    <div className="text-xs font-semibold text-gray-500 mt-1 uppercase">Educators</div>
+                                </div>
+                                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                                    <div className="text-3xl font-black text-blue-700">10+</div>
+                                    <div className="text-xs font-semibold text-gray-500 mt-1 uppercase">Subjects</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="rounded-2xl overflow-hidden shadow-xl">
+                            <img
+                                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                                alt="Students studying together"
+                                className="w-full h-80 object-cover"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* COURSES SECTION */}
+            <section id="courses" className="py-20 bg-gray-50">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3 mb-4">
+                        <BookOpen size={28} className="text-primary-700" />
+                        <h2 className="text-3xl font-extrabold text-primary-900 uppercase tracking-widest">Courses</h2>
+                    </div>
+                    <div className="w-16 h-1 bg-green-500 mb-10"></div>
+                    <p className="text-gray-600 max-w-2xl mb-12">We offer comprehensive exam preparation across multiple international curricula and subjects.</p>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[
+                            { title: 'Economics', level: 'IGCSE / IBDP', desc: 'Master microeconomics, macroeconomics, and international trade concepts with AI-powered essay grading.', color: 'border-primary-500' },
+                            { title: 'Biology', level: 'PSLE / IGCSE', desc: 'Comprehensive biology preparation covering cell biology, genetics, ecology and more.', color: 'border-green-500' },
+                            { title: 'Geography', level: 'IGCSE / IBDP', desc: 'Physical and human geography with structured essay practice and detailed feedback.', color: 'border-blue-500' },
+                            { title: 'History', level: 'IGCSE / IBDP', desc: 'Source-based questions, essay writing and historical analysis with teacher guidance.', color: 'border-yellow-500' },
+                            { title: 'English', level: 'PSLE / IGCSE', desc: 'Essay writing, comprehension, and language skills to achieve top grades.', color: 'border-red-500' },
+                            { title: 'Mathematics', level: 'PSLE / IGCSE', desc: 'Problem solving, algebra, statistics and calculus preparation for all levels.', color: 'border-purple-500' },
+                        ].map((course, i) => (
+                            <div key={i} className={`bg-white rounded-xl shadow-sm border-t-4 ${course.color} p-6 hover:shadow-md transition`}>
+                                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{course.level}</div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-3">{course.title}</h3>
+                                <p className="text-gray-600 text-sm leading-relaxed">{course.desc}</p>
+                                <button onClick={() => navigate('/login')} className="mt-4 text-primary-600 text-sm font-bold hover:text-primary-800 transition">
+                                    Start Learning →
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* e-EDUCATORS SECTION */}
+            <section id="educators" className="py-20 bg-white">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Users size={28} className="text-primary-700" />
+                        <h2 className="text-3xl font-extrabold text-primary-900 uppercase tracking-widest">e-Educators</h2>
+                    </div>
+                    <div className="w-16 h-1 bg-green-500 mb-10"></div>
+                    <p className="text-gray-600 max-w-2xl mb-12">Our expert educators bring years of experience in international exam preparation. They review student submissions, provide personalised feedback, and guide every student to success.</p>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[
+                            { name: 'Dr. Sarah Mitchell', subject: 'Economics & Business', exp: '12 years', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
+                            { name: 'Prof. James Anderson', subject: 'Biology & Science', exp: '15 years', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+                            { name: 'Dr. Emily Chen', subject: 'Geography & History', exp: '10 years', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+                            { name: 'Prof. David Kumar', subject: 'Mathematics & Physics', exp: '18 years', avatar: 'https://randomuser.me/api/portraits/men/75.jpg' },
+                        ].map((edu, i) => (
+                            <div key={i} className="bg-gray-50 rounded-xl p-6 text-center hover:shadow-md transition">
+                                <img src={edu.avatar} alt={edu.name} className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-4 border-primary-100" />
+                                <h3 className="font-bold text-gray-800 text-sm">{edu.name}</h3>
+                                <p className="text-primary-600 text-xs font-semibold mt-1">{edu.subject}</p>
+                                <p className="text-gray-400 text-xs mt-1">{edu.exp} experience</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-12 bg-primary-900 rounded-2xl p-8 text-center text-white">
+                        <h3 className="text-xl font-bold mb-2">Are you an educator?</h3>
+                        <p className="text-white/70 mb-6">Join our growing network of expert educators and help students achieve their exam goals.</p>
+                        <button onClick={() => navigate('/register')} className="bg-green-500 text-white px-8 py-3 rounded font-bold hover:bg-green-600 transition">
+                            Join as an Educator
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            {/* CONTACT US SECTION */}
+            <section id="contact" className="py-20 bg-gray-50">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Phone size={28} className="text-primary-700" />
+                        <h2 className="text-3xl font-extrabold text-primary-900 uppercase tracking-widest">Contact Us</h2>
+                    </div>
+                    <div className="w-16 h-1 bg-green-500 mb-10"></div>
+                    <div className="grid md:grid-cols-2 gap-12">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-800 mb-6">Get in Touch</h3>
+                            <div className="space-y-4">
+                                <div className="flex items-start gap-4">
+                                    <Mail size={20} className="text-primary-600 mt-1 flex-shrink-0" />
+                                    <div>
+                                        <div className="font-semibold text-gray-700">Email</div>
+                                        <div className="text-gray-500 text-sm">support@intemass.com</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-4">
+                                    <Phone size={20} className="text-primary-600 mt-1 flex-shrink-0" />
+                                    <div>
+                                        <div className="font-semibold text-gray-700">Phone</div>
+                                        <div className="text-gray-500 text-sm">+65 6123 4567</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-4">
+                                    <MapPin size={20} className="text-primary-600 mt-1 flex-shrink-0" />
+                                    <div>
+                                        <div className="font-semibold text-gray-700">Address</div>
+                                        <div className="text-gray-500 text-sm">MegaForte Global LMS<br />1 Raffles Place, Singapore 048616</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm p-6">
+                            <h3 className="text-lg font-bold text-gray-800 mb-4">Send us a Message</h3>
+                            <div className="space-y-4">
+                                <input type="text" placeholder="Your Name" className="w-full border border-gray-200 rounded px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                                <input type="email" placeholder="Your Email" className="w-full border border-gray-200 rounded px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                                <textarea rows={4} placeholder="Your Message" className="w-full border border-gray-200 rounded px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"></textarea>
+                                <button className="w-full bg-primary-700 text-white py-3 rounded font-bold hover:bg-primary-800 transition text-sm uppercase tracking-widest">
+                                    Send Message
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* SUPPORT SECTION */}
+            <section id="support" className="py-20 bg-white">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3 mb-4">
+                        <HelpCircle size={28} className="text-primary-700" />
+                        <h2 className="text-3xl font-extrabold text-primary-900 uppercase tracking-widest">Support</h2>
+                    </div>
+                    <div className="w-16 h-1 bg-green-500 mb-10"></div>
+                    <p className="text-gray-600 max-w-2xl mb-12">Frequently asked questions to help you get started and make the most of INTEMASS LMS.</p>
+                    <div className="space-y-4 max-w-3xl">
+                        {[
+                            { q: 'How do I create a student account?', a: 'Click "Start Here" or "Login" on the homepage, then select "Create an Account". Choose the Student role and fill in your details.' },
+                            { q: 'How does AI grading work?', a: 'Our AI uses advanced NLP (Natural Language Processing) to compare your answer against the model answer. It checks semantic similarity, keyword coverage, and concept overlap to award accurate marks.' },
+                            { q: 'Can I request a reassessment?', a: 'Yes! After viewing your marked submission, you can select specific points you disagree with, provide your reasoning, and submit a reassessment request. Your teacher will review it and may update your marks.' },
+                            { q: 'How do I submit an assignment?', a: 'Log in as a student, go to your dashboard, select an assignment, type or upload your answer, and click Submit. Your work will be automatically graded.' },
+                            { q: 'Can teachers create their own questions?', a: 'Yes. Teachers can log in and go to the Answer Databank to create essay or short-answer questions with model answers and assign them to modules.' },
+                            { q: 'Is my data secure?', a: 'Yes. All data is stored in a secure PostgreSQL database hosted on Supabase with encrypted connections. Your personal information is never shared with third parties.' },
+                        ].map((faq, i) => (
+                            <details key={i} className="group border border-gray-200 rounded-xl">
+                                <summary className="flex items-center justify-between p-5 cursor-pointer font-semibold text-gray-800 hover:bg-gray-50 rounded-xl transition list-none">
+                                    {faq.q}
+                                    <ChevronDown size={18} className="text-gray-400 group-open:rotate-180 transition-transform" />
+                                </summary>
+                                <div className="px-5 pb-5 text-gray-600 text-sm leading-relaxed">{faq.a}</div>
+                            </details>
+                        ))}
+                    </div>
+                    <div className="mt-12 text-center">
+                        <p className="text-gray-600 mb-4">Still have questions?</p>
+                        <button onClick={() => scrollTo('contact')} className="bg-primary-700 text-white px-8 py-3 rounded font-bold hover:bg-primary-800 transition text-sm uppercase tracking-widest">
+                            Contact Support
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            {/* FOOTER */}
+            <footer className="bg-primary-900 text-white/70 py-8">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+                    <img src="/logo.png" alt="MegaForte" className="h-12 w-12 object-contain bg-white rounded-full mx-auto mb-4 p-1" />
+                    <p className="text-sm">© 2026 MegaForte Global LMS — INTEMASS. All rights reserved.</p>
+                    <div className="flex justify-center gap-6 mt-4 text-xs font-semibold uppercase tracking-widest">
+                        <button onClick={() => scrollTo('about')} className="hover:text-white transition">About</button>
+                        <button onClick={() => scrollTo('courses')} className="hover:text-white transition">Courses</button>
+                        <button onClick={() => scrollTo('educators')} className="hover:text-white transition">Educators</button>
+                        <button onClick={() => scrollTo('contact')} className="hover:text-white transition">Contact</button>
+                        <button onClick={() => scrollTo('support')} className="hover:text-white transition">Support</button>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }

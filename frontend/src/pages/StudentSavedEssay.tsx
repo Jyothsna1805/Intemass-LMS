@@ -208,9 +208,10 @@ export default function StudentSavedEssay() {
         }
     }
         
-    // Always use the frontend's strict math logic to calculate the score on the fly,
-    // so even old submissions reflect the new strict grading and cut marks.
-    const scoredM = dynamicallyCalculatedScore;
+    // If teacher has reviewed a reassessment, their marks are final — override dynamic calculation
+    const scoredM = (submission.reassessment_status === 'reviewed' && submission.marks_awarded !== null && submission.marks_awarded !== undefined)
+        ? submission.marks_awarded
+        : dynamicallyCalculatedScore;
         
     const cfPercent = ((scoredM / maxM) * 100).toFixed(2);
 
