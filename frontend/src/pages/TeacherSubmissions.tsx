@@ -33,18 +33,23 @@ export default function TeacherSubmissions() {
             {/* MegaForte Navbar */}
             <nav className="bg-primary-900 px-4 sm:px-6 lg:px-8 shadow-sm">
                 <div className="flex h-16 items-center justify-between max-w-7xl mx-auto">
-                    <div className="flex-shrink-0 flex items-center gap-2">
+                    <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
                         <img src="/logo.png" alt="MegaForte" className="h-10 w-10 object-contain bg-white rounded-full shadow-sm" />
                     </div>
                     <div className="hidden lg:flex items-center gap-6">
                         <div className="flex items-center gap-4 text-white/90">
-                            <Bell size={18} className="cursor-pointer hover:text-white" />
-                            <div className="flex items-center text-sm font-bold cursor-pointer hover:text-white">
+                            <Bell size={18} className="cursor-pointer hover:text-white" onClick={() => alert("Notifications: You have no pending unread notifications.")} />
+                            <div onClick={() => navigate('/')} className="flex items-center text-sm font-bold cursor-pointer hover:text-white">
                                 <ShoppingCart size={18} className="mr-1" /> Cart (0)
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button className="border border-white/50 text-white px-4 py-1.5 text-sm font-semibold hover:bg-white/10">Account</button>
+                            <button 
+                                onClick={() => navigate('/teacher-dashboard')} 
+                                className="border border-white/50 text-white px-4 py-1.5 text-sm font-semibold hover:bg-white/10 transition flex items-center gap-1.5"
+                            >
+                                Account
+                            </button>
                             <button onClick={logout} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase hover:bg-green-600">SIGNOUT</button>
                         </div>
                     </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Bell, ShoppingCart, X } from 'lucide-react';
+import { ArrowLeft, Bell, ShoppingCart } from 'lucide-react';
 
 interface SubmissionDetail {
     id: string;
@@ -29,7 +29,6 @@ export default function StudentSavedEssay() {
     const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
     const [error, setError] = useState('');
     const [showDetailedReport, setShowDetailedReport] = useState(false);
-    const [activeFeedback, setActiveFeedback] = useState<string | null>(null);
 
     // Reassessment State
     const [checkedPoints, setCheckedPoints] = useState<number[]>([]);
@@ -220,18 +219,23 @@ export default function StudentSavedEssay() {
             {/* MegaForte Navbar */}
             <nav className="bg-primary-900 px-4 sm:px-6 lg:px-8 shadow-sm w-full">
                 <div className="flex h-16 items-center justify-between max-w-7xl mx-auto">
-                    <div className="flex-shrink-0 flex items-center gap-2">
+                    <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
                         <img src="/logo.png" alt="MegaForte" className="h-10 w-10 object-contain bg-white rounded-full shadow-sm" />
                     </div>
                     <div className="hidden lg:flex items-center gap-6">
                         <div className="flex items-center gap-4 text-white/90">
-                            <Bell size={18} className="cursor-pointer hover:text-white" />
-                            <div className="flex items-center text-sm font-bold cursor-pointer hover:text-white">
+                            <Bell size={18} className="cursor-pointer hover:text-white" onClick={() => alert("Notifications: You have no pending unread notifications.")} />
+                            <div onClick={() => navigate('/')} className="flex items-center text-sm font-bold cursor-pointer hover:text-white">
                                 <ShoppingCart size={18} className="mr-1" /> Cart (0)
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button className="border border-white/50 text-white px-4 py-1.5 text-sm font-semibold hover:bg-white/10">Account</button>
+                            <button 
+                                onClick={() => navigate('/student-dashboard')} 
+                                className="border border-white/50 text-white px-4 py-1.5 text-sm font-semibold hover:bg-white/10 transition flex items-center gap-1.5"
+                            >
+                                Account ({user ? user.email.split('@')[0] : 'Student'})
+                            </button>
                             <button onClick={logout} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase hover:bg-green-600">SIGNOUT</button>
                         </div>
                     </div>

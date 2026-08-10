@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, Users, FolderOpen, Bell, ShoppingCart } from 'lucide-react';
@@ -8,6 +9,7 @@ interface User { id: string; email: string; role: string; full_name: string | nu
 interface Assignment { id: string; title: string; instructions: string; due_date: string; created_at: string; }
 
 export default function MasterDashboard() {
+    const navigate = useNavigate();
     const { logout, user } = useAuth();
     const [activeTab, setActiveTab] = useState<'questions' | 'users' | 'assignments'>('questions');
 
@@ -49,13 +51,16 @@ export default function MasterDashboard() {
                             <span className="text-primary-200">MASTER ADMIN: {user?.email}</span>
                         </div>
                         <div className="flex items-center gap-4 text-white/90">
-                            <Bell size={18} className="cursor-pointer hover:text-white" />
-                            <div className="flex items-center text-sm font-bold cursor-pointer hover:text-white">
+                            <Bell size={18} className="cursor-pointer hover:text-white" onClick={() => alert("Notifications: You have no pending unread notifications.")} />
+                            <div onClick={() => navigate('/')} className="flex items-center text-sm font-bold cursor-pointer hover:text-white">
                                 <ShoppingCart size={18} className="mr-1" /> Cart (0)
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button className="border border-white/50 text-white px-4 py-1.5 text-sm font-semibold hover:bg-white/10">
+                            <button 
+                                onClick={() => navigate('/master-dashboard')} 
+                                className="border border-white/50 text-white px-4 py-1.5 text-sm font-semibold hover:bg-white/10 transition flex items-center gap-1.5"
+                            >
                                 Account
                             </button>
                             <button onClick={logout} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase hover:bg-green-600">

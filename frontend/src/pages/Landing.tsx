@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, ShoppingCart, BookOpen, Users, Phone, HelpCircle, Info, Mail, MapPin, ChevronDown, X, Trash2, User as UserIcon, LogOut, CheckCircle } from 'lucide-react';
+import { Bell, ShoppingCart, BookOpen, Users, Phone, HelpCircle, Info, Mail, MapPin, ChevronDown, X, Trash2, User as UserIcon, LogOut } from 'lucide-react';
 
 interface CartItem {
     id: string;
@@ -24,7 +24,6 @@ export default function Landing() {
     // Modals and Interactive State
     const [showCart, setShowCart] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    const [showAccountMenu, setShowAccountMenu] = useState(false);
 
     const [cart, setCart] = useState<CartItem[]>([
         { id: '1', title: 'Economics Preparation Course', level: 'IGCSE / IBDP', price: 99 }
@@ -112,7 +111,7 @@ export default function Landing() {
                                     {/* Bell Notifications Button */}
                                     <div className="relative">
                                         <button 
-                                            onClick={() => { setShowNotifications(!showNotifications); setShowCart(false); setShowAccountMenu(false); markNotificationsAsRead(); }} 
+                                            onClick={() => { setShowNotifications(!showNotifications); setShowCart(false); markNotificationsAsRead(); }} 
                                             className="p-1.5 hover:text-white transition rounded-full hover:bg-white/10 relative"
                                             title="Notifications"
                                         >
@@ -154,7 +153,7 @@ export default function Landing() {
                                     {/* Shopping Cart Button */}
                                     <div className="relative">
                                         <button 
-                                            onClick={() => { setShowCart(!showCart); setShowNotifications(false); setShowAccountMenu(false); }} 
+                                            onClick={() => { setShowCart(!showCart); setShowNotifications(false); }} 
                                             className="flex items-center text-sm font-bold cursor-pointer hover:text-white transition py-1 px-2.5 rounded-full hover:bg-white/10"
                                         >
                                             <ShoppingCart size={18} className="mr-1.5" />
