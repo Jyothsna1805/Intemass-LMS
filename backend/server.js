@@ -27,8 +27,14 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/saved-essays', savedEssayRoutes);
 app.use('/api/users', usersRoutes);
 
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'INTEMASS LMS Backend is running' });
+app.get('/api/health', async (req, res) => {
+    try {
+        const { query } = require('./db/database');
+        await query('SELECT 1'); // Keeps Supabase database active (prevents auto-pause)
+        res.json({ status: 'ok', message: 'INTEMASS LMS Backend is running', db: 'connected' });
+    } catch (e) {
+        res.json({ status: 'ok', message: 'INTEMASS LMS Backend is running', db: 'error: ' + e.message });
+    }
 });
 
 // Serve the compiled React application directly from the Express API Server
