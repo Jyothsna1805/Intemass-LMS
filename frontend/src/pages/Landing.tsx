@@ -1,17 +1,75 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, ShoppingCart, BookOpen, Users, Phone, HelpCircle, Info, Mail, MapPin, ChevronDown } from 'lucide-react';
+import { Bell, ShoppingCart, BookOpen, Users, Phone, HelpCircle, Info, Mail, MapPin, ChevronDown, X, Trash2, User as UserIcon, LogOut, CheckCircle } from 'lucide-react';
+
+interface CartItem {
+    id: string;
+    title: string;
+    level: string;
+    price: number;
+}
+
+interface NotificationItem {
+    id: string;
+    title: string;
+    time: string;
+    read: boolean;
+}
 
 export default function Landing() {
     const navigate = useNavigate();
-    const { token, logout } = useAuth();
+    const { token, user, logout } = useAuth();
+
+    // Modals and Interactive State
+    const [showCart, setShowCart] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [showAccountMenu, setShowAccountMenu] = useState(false);
+
+    const [cart, setCart] = useState<CartItem[]>([
+        { id: '1', title: 'Economics Preparation Course', level: 'IGCSE / IBDP', price: 99 }
+    ]);
+
+    const [notifications, setNotifications] = useState<NotificationItem[]>([
+        { id: '1', title: 'Welcome to INTEMASS LMS! Explore your dashboard.', time: '10 mins ago', read: false },
+        { id: '2', title: 'New IGCSE & IBDP Economics Mock Papers added.', time: '2 hours ago', read: false }
+    ]);
+
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     const scrollTo = (id: string) => {
         document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    const handleAddToCart = (course: { title: string; level: string }) => {
+        const newItem: CartItem = {
+            id: Date.now().toString(),
+            title: `${course.title} Course`,
+            level: course.level,
+            price: 99
+        };
+        setCart(prev => [...prev, newItem]);
+        setShowCart(true);
+    };
+
+    const handleRemoveFromCart = (id: string) => {
+        setCart(prev => prev.filter(item => item.id !== id));
+    };
+
+    const handleAccountClick = () => {
+        if (token && user) {
+            navigate(`/${user.role}-dashboard`);
+        } else {
+            navigate('/login');
+        }
+    };
+
+    const markNotificationsAsRead = () => {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    };
+
     return (
-        <div className="min-h-screen bg-white font-sans text-gray-800">
+        <div className="min-h-screen bg-white font-sans text-gray-800 relative">
 
             {/* HERO SECTION */}
             <div className="relative overflow-hidden bg-primary-900 pb-32 pt-6 sm:pb-40">
@@ -35,7 +93,7 @@ export default function Landing() {
                     {/* NAVIGATION BAR */}
                     <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="flex h-16 items-center justify-between">
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
                                 <img src="/logo.png" alt="MegaForte" className="h-16 w-16 object-contain bg-white rounded-full shadow-lg p-1" />
                             </div>
 
@@ -50,27 +108,147 @@ export default function Landing() {
                             </div>
 
                             <div className="hidden lg:flex items-center gap-6">
-                                <div className="flex items-center gap-4 text-white/90">
-                                    <Bell size={18} className="cursor-pointer hover:text-white transition" />
-                                    <div className="flex items-center text-sm font-bold cursor-pointer hover:text-white transition">
-                                        <ShoppingCart size={18} className="mr-1" />
-                                        Cart (0)
+                                <div className="flex items-center gap-5 text-white/90 relative">
+                                    {/* Bell Notifications Button */}
+                                    <div className="relative">
+                                        <button 
+                                            onClick={() => { setShowNotifications(!showNotifications); setShowCart(false); setShowAccountMenu(false); markNotificationsAsRead(); }} 
+                                            className="p-1.5 hover:text-white transition rounded-full hover:bg-white/10 relative"
+                                            title="Notifications"
+                                        >
+                                            <Bell size={20} />
+                                            {unreadCount > 0 && (
+                                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black h-4 w-4 rounded-full flex items-center justify-center animate-pulse">
+                                                    {unreadCount}
+                                                </span>
+                                            )}
+                                        </button>
+
+                                        {/* Notifications Dropdown */}
+                                        {showNotifications && (
+                                            <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 text-gray-800 overflow-hidden">
+                                                <div className="bg-primary-900 text-white p-3.5 flex items-center justify-between">
+                                                    <span className="font-bold text-sm flex items-center gap-2">
+                                                        <Bell size={16} /> Notifications
+                                                    </span>
+                                                    <button onClick={() => setShowNotifications(false)} className="text-white/80 hover:text-white">
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                                <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                                                    {notifications.length === 0 ? (
+                                                        <div className="p-4 text-center text-xs text-gray-400">No notifications</div>
+                                                    ) : (
+                                                        notifications.map(n => (
+                                                            <div key={n.id} className="p-3 hover:bg-gray-50 transition text-xs">
+                                                                <div className="font-semibold text-gray-800 mb-1">{n.title}</div>
+                                                                <div className="text-[10px] text-gray-400">{n.time}</div>
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Shopping Cart Button */}
+                                    <div className="relative">
+                                        <button 
+                                            onClick={() => { setShowCart(!showCart); setShowNotifications(false); setShowAccountMenu(false); }} 
+                                            className="flex items-center text-sm font-bold cursor-pointer hover:text-white transition py-1 px-2.5 rounded-full hover:bg-white/10"
+                                        >
+                                            <ShoppingCart size={18} className="mr-1.5" />
+                                            Cart ({cart.length})
+                                        </button>
+
+                                        {/* Cart Dropdown */}
+                                        {showCart && (
+                                            <div className="absolute right-0 mt-3 w-84 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 text-gray-800 overflow-hidden">
+                                                <div className="bg-primary-900 text-white p-3.5 flex items-center justify-between">
+                                                    <span className="font-bold text-sm flex items-center gap-2">
+                                                        <ShoppingCart size={16} /> Shopping Cart
+                                                    </span>
+                                                    <button onClick={() => setShowCart(false)} className="text-white/80 hover:text-white">
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                                <div className="p-4 max-h-72 overflow-y-auto">
+                                                    {cart.length === 0 ? (
+                                                        <div className="text-center py-6 text-gray-400 text-sm">
+                                                            Your cart is empty.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {cart.map(item => (
+                                                                <div key={item.id} className="flex items-center justify-between bg-gray-50 p-2.5 rounded-lg border border-gray-100 text-xs">
+                                                                    <div>
+                                                                        <div className="font-bold text-gray-800">{item.title}</div>
+                                                                        <div className="text-[10px] text-gray-400">{item.level}</div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="font-bold text-primary-700">${item.price}</span>
+                                                                        <button onClick={() => handleRemoveFromCart(item.id)} className="text-red-400 hover:text-red-600">
+                                                                            <Trash2 size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {cart.length > 0 && (
+                                                    <div className="p-3.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                                                        <div>
+                                                            <div className="text-[10px] text-gray-400 uppercase font-bold">Total</div>
+                                                            <div className="text-base font-extrabold text-primary-900">
+                                                                ${cart.reduce((sum, item) => sum + item.price, 0)}
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => navigate('/login')} 
+                                                            className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg transition"
+                                                        >
+                                                            Checkout
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <button className="border border-white/50 bg-white/10 backdrop-blur-sm text-white px-4 py-1.5 text-sm font-semibold rounded hover:bg-white/20 transition">
-                                        Account
+
+                                <div className="flex items-center gap-3 relative">
+                                    {/* Account Button */}
+                                    <button 
+                                        onClick={handleAccountClick} 
+                                        className="border border-white/50 bg-white/10 backdrop-blur-sm text-white px-4 py-1.5 text-sm font-semibold rounded hover:bg-white/20 transition flex items-center gap-1.5"
+                                    >
+                                        <UserIcon size={15} />
+                                        {user ? user.email.split('@')[0] : 'Account'}
                                     </button>
+
+                                    {/* Login / Signout Button */}
                                     {token ? (
-                                        <button onClick={logout} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase rounded hover:bg-green-600 transition">
-                                            Signout
+                                        <button 
+                                            onClick={logout} 
+                                            className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase rounded hover:bg-green-600 transition flex items-center gap-1.5"
+                                        >
+                                            <LogOut size={15} /> Signout
                                         </button>
                                     ) : (
-                                        <button onClick={() => navigate('/login')} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase rounded hover:bg-green-600 transition">
+                                        <button 
+                                            onClick={() => navigate('/login')} 
+                                            className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase rounded hover:bg-green-600 transition"
+                                        >
                                             Login
                                         </button>
                                     )}
-                                    <button onClick={() => navigate('/login')} className="bg-blue-500 text-white px-6 py-1.5 text-sm font-bold rounded hover:bg-blue-600 transition ml-2 shadow-lg hover:shadow-xl">
+
+                                    {/* Start Here Button */}
+                                    <button 
+                                        onClick={() => navigate('/register')} 
+                                        className="bg-blue-500 text-white px-6 py-1.5 text-sm font-bold rounded hover:bg-blue-600 transition ml-1 shadow-lg hover:shadow-xl uppercase tracking-wider"
+                                    >
                                         Start Here
                                     </button>
                                 </div>
@@ -171,9 +349,14 @@ export default function Landing() {
                                 <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{course.level}</div>
                                 <h3 className="text-xl font-bold text-gray-800 mb-3">{course.title}</h3>
                                 <p className="text-gray-600 text-sm leading-relaxed">{course.desc}</p>
-                                <button onClick={() => navigate('/login')} className="mt-4 text-primary-600 text-sm font-bold hover:text-primary-800 transition">
-                                    Start Learning →
-                                </button>
+                                <div className="mt-4 flex items-center justify-between">
+                                    <button onClick={() => handleAddToCart(course)} className="bg-primary-50 text-primary-700 hover:bg-primary-100 text-xs font-bold px-3 py-1.5 rounded transition flex items-center gap-1">
+                                        <ShoppingCart size={13} /> Add to Cart
+                                    </button>
+                                    <button onClick={() => navigate('/login')} className="text-primary-600 text-xs font-bold hover:text-primary-800 transition">
+                                        Start Learning →
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
