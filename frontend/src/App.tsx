@@ -10,6 +10,10 @@ import StudentAssignment from './pages/StudentAssignment';
 import StudentSavedEssay from './pages/StudentSavedEssay';
 import TeacherSubmissions from './pages/TeacherSubmissions';
 import TeacherMarking from './pages/TeacherMarking';
+import MassUploadDashboard from './pages/MassUploadDashboard';
+import ConsolidatedReports from './pages/ConsolidatedReports';
+import MassFeedbackManager from './pages/MassFeedbackManager';
+import TeacherFeedbackPage from './pages/TeacherFeedbackPage';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
     const { user, token } = useAuth();
@@ -33,9 +37,14 @@ function App() {
                     <Route path="/student/assignment/:id" element={<ProtectedRoute allowedRoles={['student']}><StudentAssignment /></ProtectedRoute>} />
                     <Route path="/student/saved/:id" element={<ProtectedRoute allowedRoles={['student']}><StudentSavedEssay /></ProtectedRoute>} />
 
-                    <Route path="/teacher-dashboard" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
-                    <Route path="/teacher/assignments/:id/submissions" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherSubmissions /></ProtectedRoute>} />
-                    <Route path="/teacher/submissions/:id" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherMarking /></ProtectedRoute>} />
+                    <Route path="/teacher-dashboard" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherDashboard /></ProtectedRoute>} />
+                    <Route path="/mass-upload" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><MassUploadDashboard /></ProtectedRoute>} />
+                    <Route path="/consolidated-reports" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><ConsolidatedReports /></ProtectedRoute>} />
+                    <Route path="/mass-feedback-manager" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><MassFeedbackManager /></ProtectedRoute>} />
+                    <Route path="/teacher-feedback" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherFeedbackPage /></ProtectedRoute>} />
+
+                    <Route path="/teacher/assignments/:id/submissions" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherSubmissions /></ProtectedRoute>} />
+                    <Route path="/teacher/submissions/:id" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherMarking /></ProtectedRoute>} />
 
                     <Route path="/master-dashboard" element={<ProtectedRoute allowedRoles={['master']}><MasterDashboard /></ProtectedRoute>} />
                 </Routes>

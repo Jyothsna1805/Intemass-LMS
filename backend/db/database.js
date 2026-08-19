@@ -34,6 +34,8 @@ const initDb = async () => {
             try {
                 await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS subject VARCHAR(100) DEFAULT \'Uncategorized\'');
                 await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS max_marks INTEGER DEFAULT 5');
+                await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS mcq_options_json TEXT');
+                await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS blank_answers_json TEXT');
                 
                 // Add missing columns to submissions table
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS extracted_diagram_url VARCHAR(500)');

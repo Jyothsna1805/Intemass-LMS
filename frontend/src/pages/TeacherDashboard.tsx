@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Lightbulb, BrainCircuit, Bell, ShoppingCart, Loader2, Database, BookOpen } from 'lucide-react';
+import { Lightbulb, BrainCircuit, ShoppingCart, Loader2, Database, BookOpen, UploadCloud, BarChart2, MessageSquare, Star } from 'lucide-react';
+import NotificationCenter from '../components/NotificationCenter';
 
 interface Question { id: string; question_text: string; type: string; subject: string; standard_answer: string; }
 interface Assignment { id: string; title: string; due_date: string; }
@@ -103,29 +104,91 @@ export default function TeacherDashboard() {
                 <div className="flex h-16 items-center justify-between max-w-7xl mx-auto">
                     <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
                         <img src="/logo.png" alt="MegaForte" className="h-10 w-10 object-contain bg-white rounded-full shadow-sm" />
+                        <span className="text-white font-bold text-lg hidden sm:inline">Intemass Automated Evaluation</span>
                     </div>
-                    <div className="hidden lg:flex items-center gap-6">
-                        <div className="flex items-center gap-4 text-white/90">
-                            <Bell size={18} className="cursor-pointer hover:text-white" onClick={() => alert("Notifications: You have no pending unread notifications.")} />
-                            <div onClick={() => navigate('/')} className="flex items-center text-sm font-bold cursor-pointer hover:text-white">
-                                <ShoppingCart size={18} className="mr-1" /> Cart (0)
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-4 text-white/90">
+                        <NotificationCenter />
                         <div className="flex items-center gap-3">
                             <button 
                                 onClick={() => navigate('/teacher-dashboard')} 
-                                className="border border-white/50 text-white px-4 py-1.5 text-sm font-semibold hover:bg-white/10 transition flex items-center gap-1.5"
+                                className="border border-white/50 text-white px-3 py-1.5 text-xs font-semibold hover:bg-white/10 transition flex items-center gap-1.5 rounded"
                             >
                                 Account ({user ? user.email.split('@')[0] : 'Teacher'})
                             </button>
-                            <button onClick={logout} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase hover:bg-green-600">SIGNOUT</button>
-                            <button onClick={() => navigate('/')} className="bg-blue-500 text-white px-6 py-1.5 text-sm font-bold hover:bg-blue-600 ml-2">Start Here</button>
+                            <button onClick={logout} className="bg-rose-600 text-white px-3 py-1.5 text-xs font-bold uppercase hover:bg-rose-700 rounded">SIGNOUT</button>
                         </div>
                     </div>
                 </div>
             </nav>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+                {/* Flagship Modules Banner */}
+                <div className="mb-8 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-2xl border border-indigo-800/40 shadow-xl text-white">
+                    <div className="flex justify-between items-center mb-4">
+                        <div>
+                            <h2 className="text-lg font-bold text-indigo-200">Intemass Automated Assessment System</h2>
+                            <p className="text-xs text-indigo-300">Phase 1 - Phase 4 Scope of Work Modules</p>
+                        </div>
+                        <span className="bg-indigo-600/40 border border-indigo-400/40 text-indigo-200 text-xs px-3 py-1 rounded-full font-semibold">
+                            Full-Stack Active
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div 
+                            onClick={() => navigate('/mass-upload')}
+                            className="bg-slate-900/90 p-4 rounded-xl border border-indigo-800/50 hover:border-indigo-400 cursor-pointer transition-all hover:scale-[1.02] shadow-md group"
+                        >
+                            <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2.5 bg-indigo-600/30 text-indigo-400 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                    <UploadCloud className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-xs font-bold text-white group-hover:text-indigo-300">Mass Script Uploader</h3>
+                            </div>
+                            <p className="text-[11px] text-indigo-300/80">ZIP batch upload, OCR parsing & auto-marker</p>
+                        </div>
+
+                        <div 
+                            onClick={() => navigate('/consolidated-reports')}
+                            className="bg-slate-900/90 p-4 rounded-xl border border-purple-800/50 hover:border-purple-400 cursor-pointer transition-all hover:scale-[1.02] shadow-md group"
+                        >
+                            <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2.5 bg-purple-600/30 text-purple-400 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                                    <BarChart2 className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-xs font-bold text-white group-hover:text-purple-300">Consolidated Reports</h3>
+                            </div>
+                            <p className="text-[11px] text-indigo-300/80">Master mark sheet, ranking & PDF/CSV export</p>
+                        </div>
+
+                        <div 
+                            onClick={() => navigate('/mass-feedback-manager')}
+                            className="bg-slate-900/90 p-4 rounded-xl border border-emerald-800/50 hover:border-emerald-400 cursor-pointer transition-all hover:scale-[1.02] shadow-md group"
+                        >
+                            <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2.5 bg-emerald-600/30 text-emerald-400 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                    <MessageSquare className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-xs font-bold text-white group-hover:text-emerald-300">Mass Feedback Manager</h3>
+                            </div>
+                            <p className="text-[11px] text-indigo-300/80">Score band templates & delivery tracker</p>
+                        </div>
+
+                        <div 
+                            onClick={() => navigate('/teacher-feedback')}
+                            className="bg-slate-900/90 p-4 rounded-xl border border-amber-800/50 hover:border-amber-400 cursor-pointer transition-all hover:scale-[1.02] shadow-md group"
+                        >
+                            <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2.5 bg-amber-600/30 text-amber-400 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                                    <Star className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-xs font-bold text-white group-hover:text-amber-300">Teacher Feedback Page</h3>
+                            </div>
+                            <p className="text-[11px] text-indigo-300/80">Multi-field rating & feature suggestions</p>
+                        </div>
+                    </div>
+                </div>
 
                 {/* MegaForte Tabs */}
                 <div className="flex border-b border-gray-300 mb-8 space-x-8">

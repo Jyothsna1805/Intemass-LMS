@@ -312,7 +312,7 @@ router.get('/student/my_submissions', authenticate, authorize('student'), async 
         let submissions;
         if (process.env.DB_TYPE === 'postgres') {
             submissions = await query(`
-                SELECT s.id, s.assignment_id, s.marks_awarded, a.title as assignment_title
+                SELECT s.id, s.assignment_id, s.marks_awarded, s.reassessment_status, a.title as assignment_title
                 FROM submissions s
                 JOIN assignments a ON s.assignment_id = a.id
                 WHERE s.student_id = $1
@@ -320,7 +320,7 @@ router.get('/student/my_submissions', authenticate, authorize('student'), async 
             `, [req.user.id]);
         } else {
             submissions = await query(`
-                SELECT s.id, s.assignment_id, s.marks_awarded, a.title as assignment_title
+                SELECT s.id, s.assignment_id, s.marks_awarded, s.reassessment_status, a.title as assignment_title
                 FROM submissions s
                 JOIN assignments a ON s.assignment_id = a.id
                 WHERE s.student_id = ?
@@ -340,24 +340,26 @@ router.get('/reassessments/pending', authenticate, authorize('teacher'), async (
         let pending;
         if (process.env.DB_TYPE === 'postgres') {
             pending = await query(`
-                SELECT s.id, s.reassessment_request, s.submitted_at, s.marks_awarded, p.full_name as student_name, q.question_text, a.title as assignment_title
+                SELECT s.id, s.reassessment_request, s.submitted_at, s.marks_awarded, COALESCE(p.full_name, u.email) as student_name, q.question_text, a.title as assignment_title
                 FROM submissions s
-                JOIN profiles p ON s.student_id = p.user_id
+                JOIN users u ON s.student_id = u.id
+                LEFT JOIN profiles p ON s.student_id = p.user_id
                 JOIN questions q ON s.question_id = q.id
                 JOIN assignments a ON s.assignment_id = a.id
-                WHERE s.reassessment_status = 'requested' AND a.teacher_id = $1
+                WHERE s.reassessment_status = 'requested'
                 ORDER BY s.submitted_at DESC
-            `, [req.user.id]);
+            `, []);
         } else {
             pending = await query(`
-                SELECT s.id, s.reassessment_request, s.submitted_at, s.marks_awarded, p.full_name as student_name, q.question_text, a.title as assignment_title
+                SELECT s.id, s.reassessment_request, s.submitted_at, s.marks_awarded, COALESCE(p.full_name, u.email) as student_name, q.question_text, a.title as assignment_title
                 FROM submissions s
-                JOIN profiles p ON s.student_id = p.user_id
+                JOIN users u ON s.student_id = u.id
+                LEFT JOIN profiles p ON s.student_id = p.user_id
                 JOIN questions q ON s.question_id = q.id
                 JOIN assignments a ON s.assignment_id = a.id
-                WHERE s.reassessment_status = 'requested' AND a.teacher_id = ?
+                WHERE s.reassessment_status = 'requested'
                 ORDER BY s.submitted_at DESC
-            `, [req.user.id]);
+            `, []);
         }
         res.json(pending);
     } catch (error) {

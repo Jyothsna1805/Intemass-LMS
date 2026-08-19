@@ -11,9 +11,9 @@ router.get('/', authenticate, authorize(['master', 'teacher']), async (req, res)
     try {
         let questions;
         if (process.env.DB_TYPE === 'postgres') {
-            questions = await query("SELECT id, created_by, question_text, type, subject, standard_answer, max_marks, created_at FROM questions");
+            questions = await query("SELECT id, created_by, question_text, type, subject, standard_answer, max_marks, mcq_options_json, blank_answers_json, created_at FROM questions ORDER BY created_at DESC");
         } else {
-            questions = await query("SELECT id, created_by, question_text, type, subject, standard_answer, max_marks, created_at FROM questions");
+            questions = await query("SELECT id, created_by, question_text, type, subject, standard_answer, max_marks, mcq_options_json, blank_answers_json, created_at FROM questions ORDER BY created_at DESC");
         }
         res.json(questions);
     } catch (error) {
@@ -24,7 +24,7 @@ router.get('/', authenticate, authorize(['master', 'teacher']), async (req, res)
 
 // Create a new question (Master & Teacher)
 router.post('/', authenticate, authorize(['master', 'teacher']), async (req, res) => {
-    const { questionText, standardAnswer, type, subject, maxMarks } = req.body;
+    const { questionText, standardAnswer, type, subject, maxMarks, mcqOptions, blankAnswers } = req.body;
     const qSubject = subject || 'Uncategorized';
     const qMaxMarks = maxMarks ? parseInt(maxMarks) : 5;
 
@@ -32,23 +32,26 @@ router.post('/', authenticate, authorize(['master', 'teacher']), async (req, res
         return res.status(400).json({ error: 'Question text and type are required' });
     }
 
-    if (!['essay', 'short_answer'].includes(type)) {
+    if (!['essay', 'short_answer', 'mcq', 'fill_blank'].includes(type)) {
         return res.status(400).json({ error: 'Invalid question type' });
     }
+
+    const mcqOptionsJson = mcqOptions ? (typeof mcqOptions === 'string' ? mcqOptions : JSON.stringify(mcqOptions)) : null;
+    const blankAnswersJson = blankAnswers ? (typeof blankAnswers === 'string' ? blankAnswers : JSON.stringify(blankAnswers)) : null;
 
     try {
         let questionId;
         if (process.env.DB_TYPE === 'postgres') {
             const result = await execute(
-                "INSERT INTO questions(created_by, question_text, standard_answer, type, subject, max_marks) VALUES($1, $2, $3, $4, $5, $6) RETURNING id",
-                [req.user.id, questionText, standardAnswer, type, qSubject, qMaxMarks]
+                "INSERT INTO questions(created_by, question_text, standard_answer, type, subject, max_marks, mcq_options_json, blank_answers_json) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+                [req.user.id, questionText, standardAnswer, type, qSubject, qMaxMarks, mcqOptionsJson, blankAnswersJson]
             );
             questionId = result.rows[0].id;
         } else {
             questionId = generateId();
             await execute(
-                "INSERT INTO questions(id, created_by, question_text, standard_answer, type, subject, max_marks) VALUES(?, ?, ?, ?, ?, ?, ?)",
-                [questionId, req.user.id, questionText, standardAnswer, type, qSubject, qMaxMarks]
+                "INSERT INTO questions(id, created_by, question_text, standard_answer, type, subject, max_marks, mcq_options_json, blank_answers_json) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [questionId, req.user.id, questionText, standardAnswer, type, qSubject, qMaxMarks, mcqOptionsJson, blankAnswersJson]
             );
         }
 

@@ -19,6 +19,11 @@ const assignmentRoutes = require('./routes/assignments');
 const submissionRoutes = require('./routes/submissions');
 const savedEssayRoutes = require('./routes/saved_essays');
 const usersRoutes = require('./routes/users');
+const massUploaderRoutes = require('./routes/mass_uploader');
+const reportsRoutes = require('./routes/reports');
+const massFeedbackRoutes = require('./routes/mass_feedback');
+const { router: notificationsRoutes } = require('./routes/notifications');
+const teacherFeedbackRoutes = require('./routes/teacher_feedback');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
@@ -26,6 +31,11 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/saved-essays', savedEssayRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/mass-upload', massUploaderRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/mass-feedback', massFeedbackRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/teacher-feedback', teacherFeedbackRoutes);
 
 app.get('/api/health', async (req, res) => {
     try {

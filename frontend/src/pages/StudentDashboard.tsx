@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Lightbulb, BrainCircuit, Bell, ShoppingCart, CheckCircle, FileText } from 'lucide-react';
+import { Lightbulb, BrainCircuit, ShoppingCart, CheckCircle, FileText } from 'lucide-react';
+import NotificationCenter from '../components/NotificationCenter';
 
 interface Assignment { id: string; title: string; instructions: string; due_date: string; }
 interface Submission { id: string; assignment_id: string; marks_awarded: number | null; assignment_title: string; }
@@ -35,16 +36,11 @@ export default function StudentDashboard() {
                 <div className="flex h-16 items-center justify-between max-w-7xl mx-auto">
                     <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
                         <img src="/logo.png" alt="MegaForte" className="h-10 w-10 object-contain bg-white rounded-full shadow-sm" />
+                        <span className="text-white font-bold text-lg hidden sm:inline">Intemass Student Dashboard</span>
                     </div>
 
-                    <div className="hidden lg:flex items-center gap-6">
-                        <div className="flex items-center gap-4 text-white/90">
-                            <Bell size={18} className="cursor-pointer hover:text-white" onClick={() => alert("Notifications: You have no pending unread notifications.")} />
-                            <div onClick={() => navigate('/')} className="flex items-center text-sm font-bold cursor-pointer hover:text-white">
-                                <ShoppingCart size={18} className="mr-1" />
-                                Cart (0)
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-4 text-white/90">
+                        <NotificationCenter />
                         <div className="flex items-center gap-3">
                             <button 
                                 onClick={() => navigate('/student-dashboard')} 
@@ -52,11 +48,8 @@ export default function StudentDashboard() {
                             >
                                 Account ({user ? user.email.split('@')[0] : 'Student'})
                             </button>
-                            <button onClick={logout} className="bg-green-500 text-white px-4 py-1.5 text-sm font-bold uppercase hover:bg-green-600">
+                            <button onClick={logout} className="bg-rose-600 text-white px-4 py-1.5 text-sm font-bold uppercase hover:bg-rose-700">
                                 SIGNOUT
-                            </button>
-                            <button onClick={() => navigate('/')} className="bg-blue-500 text-white px-6 py-1.5 text-sm font-bold hover:bg-blue-600 ml-2">
-                                Start Here
                             </button>
                         </div>
                     </div>
