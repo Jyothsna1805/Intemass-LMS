@@ -373,10 +373,10 @@ export default function Landing() {
                     <p className="text-gray-600 max-w-2xl mb-12">Our expert educators bring years of experience in international exam preparation. They review student submissions, provide personalised feedback, and guide every student to success.</p>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
-                            { name: 'Dr. Sarah Mitchell', subject: 'Economics & Business', exp: '12 years', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
-                            { name: 'Prof. James Anderson', subject: 'Biology & Science', exp: '15 years', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
-                            { name: 'Dr. Emily Chen', subject: 'Geography & History', exp: '10 years', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
-                            { name: 'Prof. David Kumar', subject: 'Mathematics & Physics', exp: '18 years', avatar: 'https://randomuser.me/api/portraits/men/75.jpg' },
+                            { name: 'Dr. Sunita Sharma', subject: 'Economics & Business', exp: '12 years', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&h=256&q=80' },
+                            { name: 'Prof. Rajesh Iyer', subject: 'Biology & Science', exp: '15 years', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&w=256&h=256&q=80' },
+                            { name: 'Dr. Emily Chen', subject: 'Geography & History', exp: '10 years', avatar: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=256&h=256&q=80' },
+                            { name: 'Prof. David Kumar', subject: 'Mathematics & Physics', exp: '18 years', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80' },
                         ].map((edu, i) => (
                             <div key={i} className="bg-gray-50 rounded-xl p-6 text-center hover:shadow-md transition">
                                 <img src={edu.avatar} alt={edu.name} className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-4 border-primary-100" />
