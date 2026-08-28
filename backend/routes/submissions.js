@@ -199,7 +199,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 if (mcqOptionsJson) {
                     try {
                         const opts = typeof mcqOptionsJson === 'string' ? JSON.parse(mcqOptionsJson) : mcqOptionsJson;
-                        const correctOpt = opts.find((o: any) => o.isCorrect || o.key === stdUpper || o.id === stdUpper);
+                        const correctOpt = opts.find((o) => o.isCorrect || o.key === stdUpper || o.id === stdUpper);
                         if (correctOpt && (correctOpt.text.toUpperCase().trim() === stuUpper || correctOpt.key === stuUpper)) {
                             isCorrect = true;
                         }
@@ -223,7 +223,7 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
             if (blankAnswersJson) {
                 try {
                     const parsed = typeof blankAnswersJson === 'string' ? JSON.parse(blankAnswersJson) : blankAnswersJson;
-                    if (Array.isArray(parsed)) validAnswers = parsed.map((a: string) => a.toLowerCase().trim());
+                    if (Array.isArray(parsed)) validAnswers = parsed.map((a) => a.toLowerCase().trim());
                 } catch (e) {}
             }
 
