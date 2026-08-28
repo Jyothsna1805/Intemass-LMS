@@ -28,8 +28,16 @@ export default function TeacherDashboard() {
     const [qType, setQType] = useState('essay');
     const [qText, setQText] = useState('');
     const [qStandardAnswer, setQStandardAnswer] = useState('');
-    const [qMaxMarks, setQMaxMarks] = useState<number>(10);
+    const [qMaxMarks, setQMaxMarks] = useState<number>(5);
     const [filterSubject, setFilterSubject] = useState('All');
+
+    // MCQ & Cloze Passage states
+    const [mcqOptA, setMcqOptA] = useState('');
+    const [mcqOptB, setMcqOptB] = useState('');
+    const [mcqOptC, setMcqOptC] = useState('');
+    const [mcqOptD, setMcqOptD] = useState('');
+    const [mcqCorrectKey, setMcqCorrectKey] = useState('A');
+    const [blankAnswersInput, setBlankAnswersInput] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -69,15 +77,39 @@ export default function TeacherDashboard() {
     const handleCreateQuestion = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
+
+        let mcqOpts = null;
+        let stdAns = qStandardAnswer;
+
+        if (qType === 'mcq') {
+            mcqOpts = [
+                { key: 'A', text: mcqOptA },
+                { key: 'B', text: mcqOptB },
+                { key: 'C', text: mcqOptC },
+                { key: 'D', text: mcqOptD }
+            ];
+            stdAns = mcqCorrectKey;
+        }
+
+        let blankAnswers = null;
+        if (qType === 'fill_blank') {
+            blankAnswers = blankAnswersInput.split(',').map(s => s.trim()).filter(Boolean);
+            if (!stdAns && blankAnswers.length > 0) stdAns = blankAnswers[0];
+        }
+
         try {
             await api.post('/questions', {
                 questionText: qText,
-                standardAnswer: qStandardAnswer,
+                standardAnswer: stdAns,
                 type: qType,
                 subject: qSubject || 'Uncategorized',
-                maxMarks: qMaxMarks
+                maxMarks: qMaxMarks,
+                mcqOptions: mcqOpts,
+                blankAnswers: blankAnswers
             });
             setQText(''); setQStandardAnswer('');
+            setMcqOptA(''); setMcqOptB(''); setMcqOptC(''); setMcqOptD('');
+            setBlankAnswersInput('');
             fetchData();
         } catch (err) {
             console.error(err);
@@ -230,23 +262,23 @@ export default function TeacherDashboard() {
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Due Date</label>
                                     <input required type="date" className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                                 </div>
-
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Select Questions</label>
-                                    <div className="max-h-48 overflow-y-auto space-y-2 border border-gray-200 p-2 bg-gray-50">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Select Questions ({selectedQuestions.length})</label>
+                                    <div className="border border-gray-300 p-2 max-h-48 overflow-y-auto space-y-2 bg-gray-50">
                                         {questions.map((q) => (
-                                            <div key={q.id} className="flex items-start gap-2 p-1 hover:bg-white cursor-pointer" onClick={() => toggleQuestion(q.id)}>
-                                                <input type="checkbox" className="mt-1" checked={selectedQuestions.includes(q.id)} readOnly />
-                                                <div>
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-[10px] bg-primary-100 text-primary-800 px-1 py-0.5 uppercase font-bold">{q.type.replace('_', ' ')}</span>
-                                                        <span className="text-[10px] bg-gray-200 text-gray-600 px-1 py-0.5 uppercase font-bold truncate max-w-[80px]">{q.subject || 'Misc'}</span>
-                                                    </div>
-                                                    <p className="text-xs mt-1 text-gray-800 line-clamp-2 leading-tight" dangerouslySetInnerHTML={{ __html: q.question_text }} />
-                                                </div>
+                                            <div key={q.id} className="flex items-start gap-2 text-xs">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`q-${q.id}`}
+                                                    checked={selectedQuestions.includes(q.id)}
+                                                    onChange={() => toggleQuestion(q.id)}
+                                                    className="mt-0.5"
+                                                />
+                                                <label htmlFor={`q-${q.id}`} className="cursor-pointer">
+                                                    <span className="font-bold text-primary-900">[{q.type.toUpperCase()}]</span> {q.question_text.substring(0, 60)}...
+                                                </label>
                                             </div>
                                         ))}
-                                        {questions.length === 0 && <p className="text-[10px] text-gray-400 p-2 uppercase font-bold">No questions available.</p>}
                                     </div>
                                 </div>
 
@@ -294,7 +326,7 @@ export default function TeacherDashboard() {
                             <form onSubmit={handleCreateQuestion} className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subject / Category</label>
-                                    <input required type="text" className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" placeholder="e.g. Biology 101" value={qSubject} onChange={(e) => setQSubject(e.target.value)} />
+                                    <input required type="text" className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" placeholder="e.g. CBSE AI/ML Olympiad - Class 10" value={qSubject} onChange={(e) => setQSubject(e.target.value)} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Format</label>
@@ -302,6 +334,8 @@ export default function TeacherDashboard() {
                                         <select className="flex-1 border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" value={qType} onChange={(e) => setQType(e.target.value)}>
                                             <option value="essay">Essay</option>
                                             <option value="short_answer">Short Answer</option>
+                                            <option value="mcq">Multiple Choice (MCQ)</option>
+                                            <option value="fill_blank">Cloze Passage (Fill-in-Blank)</option>
                                         </select>
                                         <div className="w-24">
                                             <label className="sr-only">Max Marks</label>
@@ -311,12 +345,38 @@ export default function TeacherDashboard() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Question Prompt</label>
-                                    <textarea required className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none font-mono text-xs" rows={4} value={qText} onChange={(e) => setQText(e.target.value)} />
+                                    <textarea required className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none font-mono text-xs" rows={3} value={qText} onChange={(e) => setQText(e.target.value)} placeholder="e.g. Which algorithm is used for continuous price forecasting?" />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Standard Answer (Mark Scheme)</label>
-                                    <textarea required className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none font-mono text-xs" rows={4} value={qStandardAnswer} onChange={(e) => setQStandardAnswer(e.target.value)} />
-                                </div>
+
+                                {qType === 'mcq' ? (
+                                    <div className="space-y-3 bg-indigo-50/60 p-3 border border-indigo-200 rounded">
+                                        <p className="text-[11px] font-bold text-indigo-900 uppercase">MCQ Options (A, B, C, D)</p>
+                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="Option A" value={mcqOptA} onChange={e => setMcqOptA(e.target.value)} />
+                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="Option B" value={mcqOptB} onChange={e => setMcqOptB(e.target.value)} />
+                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="Option C" value={mcqOptC} onChange={e => setMcqOptC(e.target.value)} />
+                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="Option D" value={mcqOptD} onChange={e => setMcqOptD(e.target.value)} />
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-indigo-900 uppercase mb-1">Correct Answer Key</label>
+                                            <select className="w-full border p-1.5 text-xs font-bold bg-white" value={mcqCorrectKey} onChange={e => setMcqCorrectKey(e.target.value)}>
+                                                <option value="A">Option A</option>
+                                                <option value="B">Option B</option>
+                                                <option value="C">Option C</option>
+                                                <option value="D">Option D</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                ) : qType === 'fill_blank' ? (
+                                    <div className="space-y-2 bg-amber-50/60 p-3 border border-amber-200 rounded">
+                                        <label className="block text-[11px] font-bold text-amber-900 uppercase">Accepted Answers / Synonyms (comma separated)</label>
+                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="e.g. Linear Regression, Regression" value={blankAnswersInput} onChange={e => setBlankAnswersInput(e.target.value)} />
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Standard Answer (Mark Scheme)</label>
+                                        <textarea required className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none font-mono text-xs" rows={3} value={qStandardAnswer} onChange={(e) => setQStandardAnswer(e.target.value)} />
+                                    </div>
+                                )}
+
                                 <button type="submit" disabled={loading} className="w-full bg-primary-600 text-white py-2 text-[10px] tracking-widest font-black uppercase hover:bg-primary-700 transition flex justify-center items-center shadow-sm">
                                     {loading ? <Loader2 className="animate-spin" size={16} /> : "+ Save to Databank"}
                                 </button>
@@ -327,7 +387,7 @@ export default function TeacherDashboard() {
                         <div className="lg:col-span-3 bg-white p-8 rounded-sm shadow-sm border border-gray-100">
                             <div className="flex justify-between items-center mb-8 pb-4 border-b-2 border-primary-100">
                                 <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
-                                    <BookOpen className="text-primary-700" size={28} /> Global Databank
+                                    <BookOpen className="text-primary-700" size={28} /> Global Databank ({filteredQuestions.length})
                                 </h1>
                                 <select
                                     className="border border-gray-300 text-sm font-bold uppercase tracking-widest text-primary-900 p-2 outline-none shadow-sm"
@@ -342,26 +402,54 @@ export default function TeacherDashboard() {
                             </div>
 
                             <div className="space-y-4">
-                                {filteredQuestions.map((q) => (
-                                    <div key={q.id} className="border border-gray-200 p-5 rounded-sm bg-gray-50 hover:bg-white transition shadow-sm group">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <span className="bg-primary-900 text-white text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-sm shadow-sm">
-                                                    {q.subject || 'Uncategorized'}
-                                                </span>
-                                                <span className="bg-gray-200 text-gray-600 text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-sm">
-                                                    {q.type.replace('_', ' ')}
-                                                </span>
+                                {filteredQuestions.map((q: any) => {
+                                    let opts = [];
+                                    if (q.mcq_options_json) {
+                                        try { opts = typeof q.mcq_options_json === 'string' ? JSON.parse(q.mcq_options_json) : q.mcq_options_json; } catch (e) {}
+                                    }
+                                    return (
+                                        <div key={q.id} className="border border-gray-200 p-5 rounded-sm bg-gray-50 hover:bg-white transition shadow-sm group">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="bg-primary-900 text-white text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-sm shadow-sm">
+                                                        {q.subject || 'Uncategorized'}
+                                                    </span>
+                                                    <span className={`text-white text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-sm ${
+                                                        q.type === 'mcq' ? 'bg-indigo-600' :
+                                                        q.type === 'fill_blank' ? 'bg-amber-600' : 'bg-gray-600'
+                                                    }`}>
+                                                        {q.type.replace('_', ' ')}
+                                                    </span>
+                                                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                                                        {q.max_marks || 5} Marks
+                                                    </span>
+                                                </div>
+                                                <span className="text-[10px] text-gray-400 font-bold tracking-widest">ID: {q.id.slice(0, 8)}...</span>
                                             </div>
-                                            <span className="text-[10px] text-gray-400 font-bold tracking-widest">ID: {q.id.slice(0, 8)}...</span>
+                                            <div className="text-sm font-bold text-gray-900 mb-2" dangerouslySetInnerHTML={{ __html: q.question_text }} />
+                                            
+                                            {q.type === 'mcq' && opts.length > 0 && (
+                                                <div className="grid grid-cols-2 gap-2 my-3">
+                                                    {opts.map((opt: any) => {
+                                                        const isAns = q.standard_answer === opt.key || q.standard_answer === opt.text;
+                                                        return (
+                                                            <div key={opt.key} className={`p-2 border text-xs font-semibold rounded ${isAns ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold' : 'bg-white border-gray-200 text-gray-700'}`}>
+                                                                <span className="font-bold mr-1">{opt.key}:</span> {opt.text} {isAns && '✓ (Correct)'}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            <div className="mt-4 pt-3 border-t border-gray-200">
+                                                <p className="text-[10px] uppercase font-black tracking-widest text-green-700 mb-1">Standard Answer / Key:</p>
+                                                <div className="text-xs font-bold text-gray-800 bg-white p-2 border border-gray-200 inline-block rounded">
+                                                    {q.standard_answer || 'No standard answer.'}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="text-sm font-bold text-gray-900 mb-2" dangerouslySetInnerHTML={{ __html: q.question_text }} />
-                                        <div className="mt-4 pt-4 border-t border-gray-200">
-                                            <p className="text-[10px] uppercase font-black tracking-widest text-green-700 mb-1">Standard Answer (Model):</p>
-                                            <div className="text-sm font-medium text-gray-600 italic whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: q.standard_answer || 'No standard answer.' }} />
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {filteredQuestions.length === 0 && (
                                     <div className="text-center py-12 text-gray-400 text-xs font-bold uppercase tracking-widest">No questions found for this subject.</div>
                                 )}

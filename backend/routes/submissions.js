@@ -145,17 +145,27 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         let qMaxMarks = 5; // Default capacity fallback
         let stdAns = "";
 
+        let qType = 'essay';
+        let mcqOptionsJson = null;
+        let blankAnswersJson = null;
+
         if (process.env.DB_TYPE === 'postgres') {
-            const qResult = await query("SELECT standard_answer, max_marks FROM questions WHERE id = $1", [questionId]);
+            const qResult = await query("SELECT type, standard_answer, max_marks, mcq_options_json, blank_answers_json FROM questions WHERE id = $1", [questionId]);
             if (qResult.length > 0) {
+                qType = qResult[0].type || 'essay';
                 stdAns = qResult[0].standard_answer || "";
                 qMaxMarks = qResult[0].max_marks || 5;
+                mcqOptionsJson = qResult[0].mcq_options_json;
+                blankAnswersJson = qResult[0].blank_answers_json;
             }
         } else {
-            const qResult = await query("SELECT standard_answer, max_marks FROM questions WHERE id = ?", [questionId]);
+            const qResult = await query("SELECT type, standard_answer, max_marks, mcq_options_json, blank_answers_json FROM questions WHERE id = ?", [questionId]);
             if (qResult.length > 0) {
+                qType = qResult[0].type || 'essay';
                 stdAns = qResult[0].standard_answer || "";
                 qMaxMarks = qResult[0].max_marks || 5;
+                mcqOptionsJson = qResult[0].mcq_options_json;
+                blankAnswersJson = qResult[0].blank_answers_json;
             }
         }
 
@@ -163,18 +173,89 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         
         const safeStripHtml = (str) => {
             if (!str) return '';
-            // Preserve line breaks from HTML block elements before stripping
             let text = str
                 .replace(/<br\s*\/?>/gi, '\n')
                 .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n\n');
-            // Only strip valid known HTML tags so we don't accidentally swallow math symbols like < 1
             return text.replace(/<\/?(?:p|b|i|u|br|strong|em|ul|li|ol|div|span|h[1-6]|tr|td|th|table|tbody|thead)[^>]*>/gi, ' ').trim();
         };
 
         let stdAnsClean = safeStripHtml(stdAns);
         let studentTextClean = safeStripHtml(studentFinalText);
+        const stringSimilarity = require('string-similarity');
 
-        if (stdAnsClean && studentTextClean) {
+        if (qType === 'mcq') {
+            const stdUpper = stdAnsClean.toUpperCase().trim();
+            const stuUpper = studentTextClean.toUpperCase().trim();
+
+            let isCorrect = false;
+            if (stuUpper === stdUpper) {
+                isCorrect = true;
+            } else if (stuUpper.length === 1 && stdUpper.startsWith(stuUpper)) {
+                isCorrect = true;
+            } else if (stdUpper.length === 1 && stuUpper.startsWith(stdUpper)) {
+                isCorrect = true;
+            } else {
+                // Check against mcq_options_json if available
+                if (mcqOptionsJson) {
+                    try {
+                        const opts = typeof mcqOptionsJson === 'string' ? JSON.parse(mcqOptionsJson) : mcqOptionsJson;
+                        const correctOpt = opts.find((o: any) => o.isCorrect || o.key === stdUpper || o.id === stdUpper);
+                        if (correctOpt && (correctOpt.text.toUpperCase().trim() === stuUpper || correctOpt.key === stuUpper)) {
+                            isCorrect = true;
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            marksAwarded = isCorrect ? qMaxMarks : 0;
+            var advancedFeedback = JSON.stringify({
+                type: 'mcq',
+                isCorrect,
+                marksAwarded,
+                selectedOption: studentTextClean,
+                correctAnswer: stdAnsClean
+            });
+        } else if (qType === 'fill_blank') {
+            const stdLower = stdAnsClean.toLowerCase().trim();
+            const stuLower = studentTextClean.toLowerCase().trim();
+
+            let validAnswers = [stdLower];
+            if (blankAnswersJson) {
+                try {
+                    const parsed = typeof blankAnswersJson === 'string' ? JSON.parse(blankAnswersJson) : blankAnswersJson;
+                    if (Array.isArray(parsed)) validAnswers = parsed.map((a: string) => a.toLowerCase().trim());
+                } catch (e) {}
+            }
+
+            let isMatch = false;
+            let bestSim = 0;
+
+            for (const target of validAnswers) {
+                if (stuLower === target) {
+                    isMatch = true;
+                    bestSim = 1.0;
+                    break;
+                }
+                const sim = stringSimilarity.compareTwoStrings(stuLower, target);
+                if (sim > bestSim) bestSim = sim;
+            }
+
+            if (isMatch || bestSim >= 0.85) {
+                marksAwarded = qMaxMarks;
+            } else if (bestSim >= 0.65) {
+                marksAwarded = Math.round(qMaxMarks * 0.6);
+            } else {
+                marksAwarded = 0;
+            }
+
+            var advancedFeedback = JSON.stringify({
+                type: 'fill_blank',
+                bestSimilarity: bestSim,
+                marksAwarded,
+                studentAnswer: studentTextClean,
+                expectedAnswer: stdAnsClean
+            });
+        } else if (stdAnsClean && studentTextClean) {
             // Force fallback to local math keyword logic to perfectly match frontend
             let splitRegex = /\n+/g;
                 if (/\b\d+\.\s/.test(stdAnsClean)) {

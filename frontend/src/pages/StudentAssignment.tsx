@@ -6,7 +6,14 @@ import { Loader2 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-interface Question { id: string; question_text: string; type: string; max_points: number; }
+interface Question {
+    id: string;
+    question_text: string;
+    type: string;
+    max_points: number;
+    mcq_options_json?: any;
+    blank_answers_json?: any;
+}
 interface Assignment { id: string; title: string; instructions: string; questions: Question[]; teacher_id?: string; }
 
 export default function StudentAssignment() {
@@ -91,6 +98,14 @@ export default function StudentAssignment() {
         setFiles(prev => ({ ...prev, [q.id]: file }));
     };
 
+    // MCQ Options Extractor
+    let mcqOptions: any[] = [];
+    if (q.type === 'mcq' && q.mcq_options_json) {
+        try {
+            mcqOptions = typeof q.mcq_options_json === 'string' ? JSON.parse(q.mcq_options_json) : q.mcq_options_json;
+        } catch (e) {}
+    }
+
     return (
         <div className="min-h-screen bg-[#332A4A] flex justify-center py-10 px-4">
             {/* Main Assignment Container (White Paper Interface) */}
@@ -119,22 +134,77 @@ export default function StudentAssignment() {
                     <div className="w-3/4 flex flex-col border-r-2 border-gray-300 bg-[#f4f3ec]">
                         {/* Question Text Box */}
                         <div className="p-4 min-h-[120px] bg-[#fdfaf2] border-b border-gray-300 text-sm leading-relaxed text-gray-800">
+                            <span className="font-bold uppercase text-xs px-2 py-0.5 bg-blue-100 text-blue-900 mr-2 rounded">
+                                {q.type === 'mcq' ? 'Multiple Choice' : q.type === 'fill_blank' ? 'Cloze Passage / Fill-in-Blank' : q.type.toUpperCase()}
+                            </span>
                             {q.question_text} <span className="italic text-gray-500">({q.max_points} marks)</span>
                         </div>
 
-                        {/* React Quill Rich Text Editor */}
-                        <div className="flex-1 bg-white flex flex-col overflow-hidden relative">
-                            <ReactQuill
-                                theme="snow"
-                                value={answers[q.id]}
-                                onChange={handleAnswerChange}
-                                className="h-full flex flex-col"
-                            />
-                            {/* File Upload Overlay Bottom */}
-                            <div className="absolute bottom-16 right-4 left-4 bg-gray-50 p-2 border border-gray-200 text-xs flex justify-between items-center rounded z-10 opacity-90 hover:opacity-100">
-                                <span className="font-bold text-gray-600">ACCORDING TO THE QUESTION, YOU MAY WANT TO ADD AN ANSWER GRAPH HERE:</span>
-                                <input type="file" onChange={handleFileChange} className="text-xs max-w-[200px]" />
-                            </div>
+                        {/* Interactive Answering UI */}
+                        <div className="flex-1 bg-white flex flex-col overflow-hidden relative p-6">
+                            {q.type === 'mcq' ? (
+                                <div className="space-y-3">
+                                    <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Select the correct option:</p>
+                                    {mcqOptions.length > 0 ? (
+                                        mcqOptions.map((opt: any) => {
+                                            const isSelected = answers[q.id] === opt.key || answers[q.id] === opt.text;
+                                            return (
+                                                <div
+                                                    key={opt.key}
+                                                    onClick={() => setAnswers(prev => ({ ...prev, [q.id]: opt.key }))}
+                                                    className={`p-4 border-2 rounded-xl flex items-center space-x-4 cursor-pointer transition-all ${
+                                                        isSelected ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-md font-bold' : 'bg-gray-50 border-gray-200 hover:border-indigo-300 text-gray-800'
+                                                    }`}
+                                                >
+                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black border ${
+                                                        isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300'
+                                                    }`}>
+                                                        {opt.key}
+                                                    </div>
+                                                    <span className="text-sm">{opt.text}</span>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {['A', 'B', 'C', 'D'].map(key => (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => setAnswers(prev => ({ ...prev, [q.id]: key }))}
+                                                    className={`w-full text-left p-3 border rounded font-semibold text-sm ${answers[q.id] === key ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-800'}`}
+                                                >
+                                                    Option {key}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : q.type === 'fill_blank' ? (
+                                <div className="space-y-4">
+                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider">Type your Cloze / Blank Answer:</label>
+                                    <input
+                                        type="text"
+                                        value={answers[q.id] || ''}
+                                        onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                        placeholder="Type answer here..."
+                                        className="w-full border-2 border-indigo-300 rounded-xl p-4 text-base font-semibold focus:outline-none focus:border-indigo-600 bg-indigo-50/30"
+                                    />
+                                </div>
+                            ) : (
+                                <>
+                                    <ReactQuill
+                                        theme="snow"
+                                        value={answers[q.id] || ''}
+                                        onChange={handleAnswerChange}
+                                        className="h-full flex flex-col"
+                                    />
+                                    {/* File Upload Overlay Bottom */}
+                                    <div className="absolute bottom-4 right-4 left-4 bg-gray-50 p-2 border border-gray-200 text-xs flex justify-between items-center rounded z-10 opacity-90 hover:opacity-100">
+                                        <span className="font-bold text-gray-600">ACCORDING TO THE QUESTION, YOU MAY WANT TO ADD AN ANSWER GRAPH HERE:</span>
+                                        <input type="file" onChange={handleFileChange} className="text-xs max-w-[200px]" />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 
