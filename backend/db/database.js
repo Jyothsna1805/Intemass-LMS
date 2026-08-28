@@ -95,14 +95,6 @@ const initDb = async () => {
                 `);
                 
             }
-            
-            // Seed 60 CBSE AI/ML Olympiad MCQs
-            try {
-                const { seedOlympiadMCQs } = require('../seed_olympiad_mcqs');
-                await seedOlympiadMCQs();
-            } catch (e) {
-                console.error("Error running Olympiad MCQ seeder:", e);
-            }
         } catch (e) {
             console.error("Error initializing postgres DB:", e);
         }
@@ -116,17 +108,11 @@ const initDb = async () => {
             } else {
                 console.log('Connected to the SQLite database.');
                 const schemaSql = fs.readFileSync(path.join(__dirname, 'schema_sqlite.sql')).toString();
-                dbInstance.exec(schemaSql, async (err) => {
+                dbInstance.exec(schemaSql, (err) => {
                     if (err) {
                         console.error("Error initializing sqlite DB:", err);
                     } else {
                         console.log("SQLite DB initialized");
-                        try {
-                            const { seedOlympiadMCQs } = require('../seed_olympiad_mcqs');
-                            await seedOlympiadMCQs();
-                        } catch (e) {
-                            console.error("Error running Olympiad MCQ seeder:", e);
-                        }
                     }
                 });
             }
