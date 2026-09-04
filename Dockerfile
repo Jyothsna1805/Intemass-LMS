@@ -37,6 +37,11 @@ RUN npm run build
 
 # Start Backend Server mapping the generated Frontend
 WORKDIR /app/backend
+# Set memory optimization variables for constrained environments (Render 512MB RAM)
+ENV NODE_OPTIONS="--max-old-space-size=192"
+ENV MALLOC_ARENA_MAX=2
+ENV PYTHONUNBUFFERED=1
+
 RUN npm install
 
 # Expose standard production port

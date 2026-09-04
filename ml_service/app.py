@@ -25,20 +25,26 @@ class AdvancedGradingEngine:
     """
 
     def __init__(self):
-        print("🔄 Loading AI models (this may take a minute)...")
-
-        # Load Sentence Transformer (best for semantic similarity)
-        self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-
-        # Load SpaCy for linguistic analysis
-        self.nlp = spacy.load('en_core_web_sm')
-
+        self._sentence_model = None
+        self._nlp = None
         # Thresholds
         self.semantic_threshold = 0.65  # Semantic similarity threshold
         self.keyword_threshold = 0.60
         self.partial_threshold = 0.45
 
-        print("✓ AI models loaded successfully!")
+    @property
+    def sentence_model(self):
+        if self._sentence_model is None:
+            print("🔄 Lazy-loading SentenceTransformer on demand...")
+            self._sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+        return self._sentence_model
+
+    @property
+    def nlp(self):
+        if self._nlp is None:
+            print("🔄 Lazy-loading SpaCy on demand...")
+            self._nlp = spacy.load('en_core_web_sm')
+        return self._nlp
 
     def extract_key_concepts(self, text):
         """Extract key concepts using NER and noun chunks"""
