@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lightbulb, BrainCircuit, ShoppingCart, CheckCircle, FileText } from 'lucide-react';
 import NotificationCenter from '../components/NotificationCenter';
 
-interface Assignment { id: string; title: string; instructions: string; due_date: string; }
+interface Assignment { id: string; title: string; instructions: string; due_date: string; subject?: string; sub_category?: string; }
 interface Submission { id: string; assignment_id: string; marks_awarded: number | null; assignment_title: string; }
 
 export default function StudentDashboard() {
@@ -59,7 +59,7 @@ export default function StudentDashboard() {
             {/* Dashboard Content matching Screenshot 1 */}
             <main className="max-w-6xl mx-auto px-4 py-12 space-y-12 min-h-[70vh]">
 
-                <div className="bg-white p-8 shadow-sm border border-gray-100">
+                <div className="bg-white p-8 shadow-sm border border-gray-100 rounded-lg">
                     <h1 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3">
                         <Lightbulb className="text-primary-600" size={32} />
                         My Courses/Modules
@@ -70,21 +70,39 @@ export default function StudentDashboard() {
                             <div
                                 key={a.id}
                                 onClick={() => navigate(`/student/assignment/${a.id}`)}
-                                className="border-2 border-gray-100 bg-white aspect-[4/3] flex flex-col items-center justify-center p-8 text-center hover:shadow-lg hover:border-primary-100 transition-all cursor-pointer group"
+                                className="border border-gray-200 bg-white rounded-lg flex flex-col justify-between p-6 hover:shadow-lg hover:border-primary-400 transition-all cursor-pointer group relative overflow-hidden"
                             >
-                                <BrainCircuit
-                                    className="mb-6 text-gray-200 stroke-[1px] group-hover:text-primary-400 transition-colors w-16 h-16"
-                                />
-                                <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest mb-3 leading-snug">
-                                    {a.title}
-                                </h3>
-                                <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                                    {a.instructions}
-                                </p>
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                                        <span className="bg-primary-50 text-primary-800 text-[10px] font-bold px-2 py-0.5 rounded border border-primary-200">
+                                            {a.subject || 'General'}
+                                        </span>
+                                        {a.sub_category && a.sub_category !== 'General' && (
+                                            <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded border border-slate-200">
+                                                {a.sub_category}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <BrainCircuit
+                                            className="text-gray-300 group-hover:text-primary-600 transition-colors w-10 h-10 flex-shrink-0"
+                                        />
+                                        <h3 className="text-sm font-bold text-gray-900 group-hover:text-primary-900 leading-snug">
+                                            {a.title}
+                                        </h3>
+                                    </div>
+                                    <p className="text-xs text-gray-500 line-clamp-2 mt-2">
+                                        {a.instructions || 'Click to view module and complete evaluation.'}
+                                    </p>
+                                </div>
+                                <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center text-xs">
+                                    <span className="text-gray-400 font-medium">Due: {a.due_date || 'No deadline'}</span>
+                                    <span className="text-primary-700 font-bold group-hover:translate-x-0.5 transition-transform">Start &rarr;</span>
+                                </div>
                             </div>
                         ))}
                         {assignments.length === 0 && (
-                            <div className="col-span-1 border-2 border-gray-100 bg-gray-50 aspect-[4/3] flex flex-col items-center justify-center p-8 text-center">
+                            <div className="col-span-3 border border-dashed border-gray-200 bg-gray-50 rounded-lg p-12 text-center">
                                 <p className="text-gray-400 text-sm font-semibold">No active modules available.</p>
                             </div>
                         )}

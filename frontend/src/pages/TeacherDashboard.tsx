@@ -1,12 +1,31 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Lightbulb, BrainCircuit, ShoppingCart, Loader2, Database, BookOpen, UploadCloud, BarChart2, MessageSquare, Star } from 'lucide-react';
+import { Lightbulb, BrainCircuit, Loader2, Database, BookOpen, UploadCloud, BarChart2, MessageSquare, Star, Folder, FolderOpen, Filter, Plus, ChevronRight, Layers, Tag } from 'lucide-react';
 import NotificationCenter from '../components/NotificationCenter';
+import SubjectFolderPicker from '../components/SubjectFolderPicker';
+import { PRESET_TAXONOMY, getAllSubjects, getSubCategoriesForSubject } from '../utils/subjectTaxonomy';
 
-interface Question { id: string; question_text: string; type: string; subject: string; standard_answer: string; }
-interface Assignment { id: string; title: string; due_date: string; }
+interface Question {
+    id: string;
+    question_text: string;
+    type: string;
+    subject: string;
+    sub_category?: string;
+    standard_answer: string;
+    max_marks?: number;
+    mcq_options_json?: any;
+    blank_answers_json?: any;
+}
+
+interface Assignment {
+    id: string;
+    title: string;
+    due_date: string;
+    subject?: string;
+    sub_category?: string;
+}
 
 export default function TeacherDashboard() {
     const { logout, user } = useAuth();
@@ -21,15 +40,25 @@ export default function TeacherDashboard() {
     const [title, setTitle] = useState('');
     const [instructions, setInstructions] = useState('');
     const [dueDate, setDueDate] = useState('');
+    const [assignmentSubject, setAssignmentSubject] = useState('Economics');
+    const [assignmentSubCategory, setAssignmentSubCategory] = useState('Microeconomics');
     const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+    const [moduleFilterSubject, setModuleFilterSubject] = useState('All');
 
     // Create Databank Question state
-    const [qSubject, setQSubject] = useState('');
+    const [qSubject, setQSubject] = useState('Economics');
+    const [qSubCategory, setQSubCategory] = useState('Microeconomics');
+    const [customSubTopic, setCustomSubTopic] = useState('');
+    const [isCustomSubject, setIsCustomSubject] = useState(false);
+    const [customSubjectName, setCustomSubjectName] = useState('');
     const [qType, setQType] = useState('essay');
     const [qText, setQText] = useState('');
     const [qStandardAnswer, setQStandardAnswer] = useState('');
     const [qMaxMarks, setQMaxMarks] = useState<number>(5);
+
+    // Global Databank Filters
     const [filterSubject, setFilterSubject] = useState('All');
+    const [filterSubCategory, setFilterSubCategory] = useState('All');
 
     // MCQ & Cloze Passage states
     const [mcqOptA, setMcqOptA] = useState('');
@@ -63,9 +92,17 @@ export default function TeacherDashboard() {
         setLoading(true);
         try {
             await api.post('/assignments', {
-                title, instructions, dueDate, questionIds: selectedQuestions
+                title,
+                instructions,
+                dueDate,
+                subject: assignmentSubject || 'General',
+                subCategory: assignmentSubCategory || 'General',
+                questionIds: selectedQuestions
             });
-            setTitle(''); setInstructions(''); setDueDate(''); setSelectedQuestions([]);
+            setTitle('');
+            setInstructions('');
+            setDueDate('');
+            setSelectedQuestions([]);
             fetchData();
         } catch (err) {
             console.error(err);
@@ -97,19 +134,28 @@ export default function TeacherDashboard() {
             if (!stdAns && blankAnswers.length > 0) stdAns = blankAnswers[0];
         }
 
+        const finalSubject = isCustomSubject ? (customSubjectName.trim() || 'Uncategorized') : (qSubject || 'Uncategorized');
+        const finalSubCategory = (qSubCategory === '__custom__' || !qSubCategory) ? (customSubTopic.trim() || 'General') : qSubCategory;
+
         try {
             await api.post('/questions', {
                 questionText: qText,
                 standardAnswer: stdAns,
                 type: qType,
-                subject: qSubject || 'Uncategorized',
+                subject: finalSubject,
+                subCategory: finalSubCategory,
                 maxMarks: qMaxMarks,
                 mcqOptions: mcqOpts,
                 blankAnswers: blankAnswers
             });
-            setQText(''); setQStandardAnswer('');
-            setMcqOptA(''); setMcqOptB(''); setMcqOptC(''); setMcqOptD('');
+            setQText('');
+            setQStandardAnswer('');
+            setMcqOptA('');
+            setMcqOptB('');
+            setMcqOptC('');
+            setMcqOptD('');
             setBlankAnswersInput('');
+            setCustomSubTopic('');
             fetchData();
         } catch (err) {
             console.error(err);
@@ -124,10 +170,31 @@ export default function TeacherDashboard() {
         );
     };
 
-    const uniqueSubjects = Array.from(new Set(questions.map(q => q.subject || 'Uncategorized')));
-    const filteredQuestions = filterSubject === 'All'
-        ? questions
-        : questions.filter(q => (q.subject || 'Uncategorized') === filterSubject);
+    // Databank Subjects and Subcategories calculation
+    const existingSubjects = Array.from(new Set(questions.map(q => q.subject || 'Uncategorized')));
+    const allSubjectsList = getAllSubjects(existingSubjects);
+
+    const availableSubCategoriesForSelectedSubject = qSubject
+        ? getSubCategoriesForSubject(qSubject, Array.from(new Set(questions.filter(q => q.subject === qSubject).map(q => q.sub_category || ''))))
+        : [];
+
+    // Filtered questions
+    const filteredQuestions = questions.filter(q => {
+        const matchSubject = filterSubject === 'All' || (q.subject || 'Uncategorized').toLowerCase() === filterSubject.toLowerCase();
+        const matchSubCategory = filterSubCategory === 'All' || (q.sub_category || 'General').toLowerCase() === filterSubCategory.toLowerCase();
+        return matchSubject && matchSubCategory;
+    });
+
+    // Subcategories available for active filterSubject
+    const activeFilterSubCategories = filterSubject === 'All'
+        ? Array.from(new Set(questions.map(q => q.sub_category || 'General'))).filter(Boolean)
+        : Array.from(new Set(questions.filter(q => (q.subject || 'Uncategorized').toLowerCase() === filterSubject.toLowerCase()).map(q => q.sub_category || 'General'))).filter(Boolean);
+
+    // Module filtering
+    const moduleSubjects = Array.from(new Set(assignments.map(a => a.subject || 'General')));
+    const filteredAssignments = moduleFilterSubject === 'All'
+        ? assignments
+        : assignments.filter(a => (a.subject || 'General').toLowerCase() === moduleFilterSubject.toLowerCase());
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
@@ -247,26 +314,44 @@ export default function TeacherDashboard() {
                 {activeTab === 'modules' && (
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                         {/* LEFT COLUMN: CREATE ASSIGNMENT */}
-                        <div className="lg:col-span-1 bg-white p-6 rounded-sm shadow-sm border border-gray-100 h-fit">
-                            <h2 className="text-md font-bold mb-4 uppercase tracking-wide text-gray-800 border-b pb-2">Create Module</h2>
+                        <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit space-y-4">
+                            <h2 className="text-md font-bold uppercase tracking-wide text-gray-800 border-b pb-2 flex items-center gap-2">
+                                <Plus size={18} className="text-primary-700" /> Create Module
+                            </h2>
                             <form onSubmit={handleCreateAssignment} className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
-                                    <input required type="text" className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" placeholder="e.g. IGCSE Econ Unit 1" value={title} onChange={(e) => setTitle(e.target.value)} />
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Module Title *</label>
+                                    <input required type="text" className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none" placeholder="e.g. Unit 1: Market Equilibrium Test" value={title} onChange={(e) => setTitle(e.target.value)} />
+                                </div>
+
+                                {/* Interactive Subject Folder & Subfolder Picker */}
+                                <div>
+                                    <SubjectFolderPicker
+                                        label="Subject Folder Directory"
+                                        placeholder="Select folder / subfolder destination..."
+                                        selectedSubject={assignmentSubject}
+                                        selectedSubCategory={assignmentSubCategory}
+                                        onSelect={(subj, sub) => {
+                                            setAssignmentSubject(subj);
+                                            setAssignmentSubCategory(sub);
+                                        }}
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Instructions</label>
+                                    <textarea required className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none" rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Provide assignment instructions for students..." />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Instructions</label>
-                                    <textarea required className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} />
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Due Date *</label>
+                                    <input required type="date" className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Due Date</label>
-                                    <input required type="date" className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Select Questions ({selectedQuestions.length})</label>
-                                    <div className="border border-gray-300 p-2 max-h-48 overflow-y-auto space-y-2 bg-gray-50">
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Select Databank Questions ({selectedQuestions.length})</label>
+                                    <div className="border border-gray-300 rounded p-2 max-h-48 overflow-y-auto space-y-2 bg-gray-50">
                                         {questions.map((q) => (
-                                            <div key={q.id} className="flex items-start gap-2 text-xs">
+                                            <div key={q.id} className="flex items-start gap-2 text-xs p-1.5 hover:bg-white rounded border border-transparent hover:border-gray-200 transition">
                                                 <input
                                                     type="checkbox"
                                                     id={`q-${q.id}`}
@@ -274,42 +359,94 @@ export default function TeacherDashboard() {
                                                     onChange={() => toggleQuestion(q.id)}
                                                     className="mt-0.5"
                                                 />
-                                                <label htmlFor={`q-${q.id}`} className="cursor-pointer">
-                                                    <span className="font-bold text-primary-900">[{q.type.toUpperCase()}]</span> {q.question_text.substring(0, 60)}...
+                                                <label htmlFor={`q-${q.id}`} className="cursor-pointer flex-1">
+                                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                                        <span className="font-bold text-primary-900 bg-primary-50 px-1 py-0.2 rounded text-[10px]">[{q.type.toUpperCase()}]</span>
+                                                        <span className="text-[10px] text-gray-500 font-medium">({q.subject}{q.sub_category ? ` / ${q.sub_category}` : ''})</span>
+                                                    </div>
+                                                    <span className="text-gray-800">{q.question_text.substring(0, 65)}...</span>
                                                 </label>
                                             </div>
                                         ))}
+                                        {questions.length === 0 && (
+                                            <p className="text-xs text-gray-400 text-center py-4">No questions available. Add questions in the Databank tab.</p>
+                                        )}
                                     </div>
                                 </div>
 
-                                <button type="submit" disabled={loading || selectedQuestions.length === 0} className="w-full disabled:opacity-50 bg-green-500 text-white py-2 text-sm font-bold uppercase hover:bg-green-600 transition flex justify-center items-center shadow-sm">
-                                    {loading ? <Loader2 className="animate-spin" size={16} /> : "Publish Module"}
+                                <button type="submit" disabled={loading || selectedQuestions.length === 0} className="w-full disabled:opacity-50 bg-green-600 text-white py-2.5 rounded text-sm font-bold uppercase hover:bg-green-700 transition flex justify-center items-center shadow-md">
+                                    {loading ? <Loader2 className="animate-spin" size={16} /> : "Publish Course Module"}
                                 </button>
                             </form>
                         </div>
 
                         {/* RIGHT COLUMN: MY COURSES / MODULES */}
-                        <div className="lg:col-span-3 bg-white p-8 rounded-sm shadow-sm border border-gray-100">
-                            <h1 className="text-2xl font-extrabold text-gray-900 mb-8 flex items-center gap-3">
-                                <Lightbulb className="text-primary-700" size={28} /> My Courses/Modules
-                            </h1>
+                        <div className="lg:col-span-3 bg-white p-6 sm:p-8 rounded-lg shadow-sm border border-gray-200">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-200">
+                                <div>
+                                    <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
+                                        <Lightbulb className="text-primary-700" size={28} /> My Course Modules ({filteredAssignments.length})
+                                    </h1>
+                                    <p className="text-xs text-gray-500 mt-0.5">Organized by Subject Folders & Sub-topics</p>
+                                </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-0 border-t border-l border-gray-200">
-                                {assignments.map((a: Assignment) => (
+                                {/* Subject Folder Filter Selector */}
+                                <div className="flex items-center gap-2">
+                                    <Filter className="w-4 h-4 text-gray-400" />
+                                    <select
+                                        className="border border-gray-300 rounded text-xs font-bold text-primary-900 px-3 py-1.5 outline-none bg-gray-50 focus:border-primary-500"
+                                        value={moduleFilterSubject}
+                                        onChange={(e) => setModuleFilterSubject(e.target.value)}
+                                    >
+                                        <option value="All">All Subject Folders</option>
+                                        {moduleSubjects.map(sub => (
+                                            <option key={sub} value={sub}>{sub}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {filteredAssignments.map((a: Assignment) => (
                                     <div
                                         key={a.id}
                                         onClick={() => navigate(`/teacher/assignments/${a.id}/submissions`)}
-                                        className="border-b border-r border-gray-200 bg-white aspect-[4/3] flex flex-col items-center justify-center p-6 text-center hover:bg-gray-50 transition cursor-pointer group"
+                                        className="border border-gray-200 rounded-lg bg-white p-5 flex flex-col justify-between hover:border-primary-400 hover:shadow-md transition cursor-pointer group relative overflow-hidden"
                                     >
-                                        <BrainCircuit className="mb-4 text-gray-200 stroke-[1px] group-hover:text-primary-400 transition-colors w-12 h-12" />
-                                        <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-2 leading-snug">
-                                            {a.title}
-                                        </h3>
-                                        <p className="text-[10px] text-gray-500 uppercase font-black">Submissions &gt;</p>
+                                        <div className="absolute top-0 left-0 right-0 h-1 bg-primary-600 group-hover:bg-primary-700 transition-colors" />
+                                        <div>
+                                            <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                                                <span className="inline-flex items-center gap-1 bg-primary-50 text-primary-800 text-[10px] font-bold px-2 py-0.5 rounded border border-primary-100">
+                                                    <Folder className="w-3 h-3 text-primary-600" />
+                                                    {a.subject || 'General'}
+                                                </span>
+                                                {a.sub_category && a.sub_category !== 'General' && (
+                                                    <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded border border-slate-200">
+                                                        {a.sub_category}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <BrainCircuit className="text-gray-300 group-hover:text-primary-600 transition-colors w-8 h-8 flex-shrink-0" />
+                                                <h3 className="text-sm font-bold text-gray-900 group-hover:text-primary-900 leading-snug line-clamp-2">
+                                                    {a.title}
+                                                </h3>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
+                                            <span className="text-[11px] text-gray-500 font-medium">Due: {a.due_date || 'No date'}</span>
+                                            <span className="text-[11px] text-primary-700 font-bold group-hover:translate-x-0.5 transition-transform flex items-center">
+                                                Submissions &rarr;
+                                            </span>
+                                        </div>
                                     </div>
                                 ))}
-                                {assignments.length === 0 && (
-                                    <div className="col-span-3 p-12 text-center text-gray-400 text-sm font-semibold border-b border-r border-gray-200">No modules created yet.</div>
+                                {filteredAssignments.length === 0 && (
+                                    <div className="col-span-3 p-12 text-center text-gray-400 text-sm font-semibold border border-dashed border-gray-200 rounded-lg">
+                                        No course modules found under this subject folder.
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -319,45 +456,120 @@ export default function TeacherDashboard() {
                 {activeTab === 'databank' && (
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                         {/* LEFT COLUMN: CREATE QUESTION */}
-                        <div className="lg:col-span-1 bg-white p-6 rounded-sm shadow-sm border border-gray-100 h-fit">
-                            <h2 className="text-md font-bold mb-4 uppercase tracking-wide text-gray-800 border-b pb-2 flex items-center gap-2">
-                                <Database size={18} className="text-primary-600" /> Add Databank
+                        <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit space-y-4">
+                            <h2 className="text-md font-bold uppercase tracking-wide text-gray-800 border-b pb-2 flex items-center gap-2">
+                                <Database size={18} className="text-primary-600" /> Add to Databank
                             </h2>
                             <form onSubmit={handleCreateQuestion} className="space-y-4">
+                                
+                                {/* Subject Category Selection */}
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subject / Category</label>
-                                    <input required type="text" className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" placeholder="e.g. CBSE AI/ML Olympiad - Class 10" value={qSubject} onChange={(e) => setQSubject(e.target.value)} />
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="block text-xs font-bold text-gray-600 uppercase">Subject Category *</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCustomSubject(!isCustomSubject)}
+                                            className="text-[10px] text-primary-700 font-semibold hover:underline"
+                                        >
+                                            {isCustomSubject ? 'Select standard' : '+ Custom subject'}
+                                        </button>
+                                    </div>
+                                    
+                                    {isCustomSubject ? (
+                                        <input
+                                            required
+                                            type="text"
+                                            className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none"
+                                            placeholder="e.g. Cambridge IGCSE Global Perspectives"
+                                            value={customSubjectName}
+                                            onChange={(e) => setCustomSubjectName(e.target.value)}
+                                        />
+                                    ) : (
+                                        <select
+                                            className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none bg-white font-medium text-gray-800"
+                                            value={qSubject}
+                                            onChange={(e) => {
+                                                setQSubject(e.target.value);
+                                                const subs = getSubCategoriesForSubject(e.target.value);
+                                                setQSubCategory(subs.length > 0 ? subs[0] : 'General');
+                                            }}
+                                        >
+                                            {allSubjectsList.map(subj => (
+                                                <option key={subj} value={subj}>{subj}</option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
+
+                                {/* Sub-category / Topic Selection */}
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Format</label>
-                                    <div className="flex gap-4">
-                                        <select className="flex-1 border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" value={qType} onChange={(e) => setQType(e.target.value)}>
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Sub-category / Topic *</label>
+                                    {!isCustomSubject && availableSubCategoriesForSelectedSubject.length > 0 ? (
+                                        <div className="space-y-2">
+                                            <select
+                                                className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none bg-white text-gray-800"
+                                                value={qSubCategory}
+                                                onChange={(e) => setQSubCategory(e.target.value)}
+                                            >
+                                                {availableSubCategoriesForSelectedSubject.map(sub => (
+                                                    <option key={sub} value={sub}>{sub}</option>
+                                                ))}
+                                                <option value="__custom__">+ Enter Custom Topic / Subfolder...</option>
+                                            </select>
+
+                                            {qSubCategory === '__custom__' && (
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    className="w-full border border-gray-300 rounded p-2 text-xs focus:border-primary-500 outline-none bg-amber-50/50"
+                                                    placeholder="Type custom sub-category name..."
+                                                    value={customSubTopic}
+                                                    onChange={(e) => setCustomSubTopic(e.target.value)}
+                                                />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <input
+                                            required
+                                            type="text"
+                                            className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none"
+                                            placeholder="e.g. Microeconomics, Neural Networks..."
+                                            value={customSubTopic}
+                                            onChange={(e) => setCustomSubTopic(e.target.value)}
+                                        />
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Format & Marks</label>
+                                    <div className="flex gap-2">
+                                        <select className="flex-1 border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none bg-white font-medium" value={qType} onChange={(e) => setQType(e.target.value)}>
                                             <option value="essay">Essay</option>
                                             <option value="short_answer">Short Answer</option>
                                             <option value="mcq">Multiple Choice (MCQ)</option>
                                             <option value="fill_blank">Cloze Passage (Fill-in-Blank)</option>
                                         </select>
                                         <div className="w-24">
-                                            <label className="sr-only">Max Marks</label>
-                                            <input required type="number" min="1" placeholder="Marks" className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none" value={qMaxMarks} onChange={(e) => setQMaxMarks(Number(e.target.value))} />
+                                            <input required type="number" min="1" placeholder="Marks" className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none text-center font-bold" value={qMaxMarks} onChange={(e) => setQMaxMarks(Number(e.target.value))} />
                                         </div>
                                     </div>
                                 </div>
+
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Question Prompt</label>
-                                    <textarea required className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none font-mono text-xs" rows={3} value={qText} onChange={(e) => setQText(e.target.value)} placeholder="e.g. Which algorithm is used for continuous price forecasting?" />
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Question Prompt *</label>
+                                    <textarea required className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none font-mono text-xs" rows={3} value={qText} onChange={(e) => setQText(e.target.value)} placeholder="e.g. Explain the determinants of price elasticity of supply..." />
                                 </div>
 
                                 {qType === 'mcq' ? (
                                     <div className="space-y-3 bg-indigo-50/60 p-3 border border-indigo-200 rounded">
                                         <p className="text-[11px] font-bold text-indigo-900 uppercase">MCQ Options (A, B, C, D)</p>
-                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="Option A" value={mcqOptA} onChange={e => setMcqOptA(e.target.value)} />
-                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="Option B" value={mcqOptB} onChange={e => setMcqOptB(e.target.value)} />
-                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="Option C" value={mcqOptC} onChange={e => setMcqOptC(e.target.value)} />
-                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="Option D" value={mcqOptD} onChange={e => setMcqOptD(e.target.value)} />
+                                        <input required type="text" className="w-full border rounded p-1.5 text-xs bg-white" placeholder="Option A" value={mcqOptA} onChange={e => setMcqOptA(e.target.value)} />
+                                        <input required type="text" className="w-full border rounded p-1.5 text-xs bg-white" placeholder="Option B" value={mcqOptB} onChange={e => setMcqOptB(e.target.value)} />
+                                        <input required type="text" className="w-full border rounded p-1.5 text-xs bg-white" placeholder="Option C" value={mcqOptC} onChange={e => setMcqOptC(e.target.value)} />
+                                        <input required type="text" className="w-full border rounded p-1.5 text-xs bg-white" placeholder="Option D" value={mcqOptD} onChange={e => setMcqOptD(e.target.value)} />
                                         <div>
                                             <label className="block text-[11px] font-bold text-indigo-900 uppercase mb-1">Correct Answer Key</label>
-                                            <select className="w-full border p-1.5 text-xs font-bold bg-white" value={mcqCorrectKey} onChange={e => setMcqCorrectKey(e.target.value)}>
+                                            <select className="w-full border rounded p-1.5 text-xs font-bold bg-white" value={mcqCorrectKey} onChange={e => setMcqCorrectKey(e.target.value)}>
                                                 <option value="A">Option A</option>
                                                 <option value="B">Option B</option>
                                                 <option value="C">Option C</option>
@@ -368,37 +580,61 @@ export default function TeacherDashboard() {
                                 ) : qType === 'fill_blank' ? (
                                     <div className="space-y-2 bg-amber-50/60 p-3 border border-amber-200 rounded">
                                         <label className="block text-[11px] font-bold text-amber-900 uppercase">Accepted Answers / Synonyms (comma separated)</label>
-                                        <input required type="text" className="w-full border p-1.5 text-xs" placeholder="e.g. Linear Regression, Regression" value={blankAnswersInput} onChange={e => setBlankAnswersInput(e.target.value)} />
+                                        <input required type="text" className="w-full border rounded p-1.5 text-xs bg-white" placeholder="e.g. Price Elasticity, Elasticity" value={blankAnswersInput} onChange={e => setBlankAnswersInput(e.target.value)} />
                                     </div>
                                 ) : (
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Standard Answer (Mark Scheme)</label>
-                                        <textarea required className="w-full border border-gray-300 p-2 text-sm focus:border-primary-500 outline-none font-mono text-xs" rows={3} value={qStandardAnswer} onChange={(e) => setQStandardAnswer(e.target.value)} />
+                                        <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Standard Answer (Mark Scheme)</label>
+                                        <textarea required className="w-full border border-gray-300 rounded p-2 text-sm focus:border-primary-500 outline-none font-mono text-xs" rows={3} value={qStandardAnswer} onChange={(e) => setQStandardAnswer(e.target.value)} placeholder="Provide full model answer for automated benchmark grading..." />
                                     </div>
                                 )}
 
-                                <button type="submit" disabled={loading} className="w-full bg-primary-600 text-white py-2 text-[10px] tracking-widest font-black uppercase hover:bg-primary-700 transition flex justify-center items-center shadow-sm">
+                                <button type="submit" disabled={loading} className="w-full bg-primary-700 text-white py-2.5 rounded text-xs tracking-wider font-bold uppercase hover:bg-primary-800 transition flex justify-center items-center shadow-md">
                                     {loading ? <Loader2 className="animate-spin" size={16} /> : "+ Save to Databank"}
                                 </button>
                             </form>
                         </div>
 
                         {/* RIGHT COLUMN: QUESTION BANK */}
-                        <div className="lg:col-span-3 bg-white p-8 rounded-sm shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-center mb-8 pb-4 border-b-2 border-primary-100">
-                                <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
-                                    <BookOpen className="text-primary-700" size={28} /> Global Databank ({filteredQuestions.length})
-                                </h1>
-                                <select
-                                    className="border border-gray-300 text-sm font-bold uppercase tracking-widest text-primary-900 p-2 outline-none shadow-sm"
-                                    value={filterSubject}
-                                    onChange={(e) => setFilterSubject(e.target.value)}
-                                >
-                                    <option value="All">ALL SUBJECTS</option>
-                                    {uniqueSubjects.map(sub => (
-                                        <option key={sub} value={sub}>{sub}</option>
-                                    ))}
-                                </select>
+                        <div className="lg:col-span-3 bg-white p-6 sm:p-8 rounded-lg shadow-sm border border-gray-200">
+                            
+                            {/* Filter Bar */}
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b-2 border-primary-100">
+                                <div>
+                                    <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
+                                        <BookOpen className="text-primary-700" size={28} /> Global Databank ({filteredQuestions.length})
+                                    </h1>
+                                    <p className="text-xs text-gray-500 mt-0.5">Hierarchical subject & sub-category classification</p>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                                    {/* Subject Filter */}
+                                    <select
+                                        className="border border-gray-300 rounded text-xs font-bold uppercase text-primary-900 p-2 outline-none bg-gray-50 focus:border-primary-500 shadow-sm"
+                                        value={filterSubject}
+                                        onChange={(e) => {
+                                            setFilterSubject(e.target.value);
+                                            setFilterSubCategory('All');
+                                        }}
+                                    >
+                                        <option value="All">ALL SUBJECTS</option>
+                                        {existingSubjects.map(sub => (
+                                            <option key={sub} value={sub}>{sub}</option>
+                                        ))}
+                                    </select>
+
+                                    {/* Sub-category Filter */}
+                                    <select
+                                        className="border border-gray-300 rounded text-xs font-bold text-gray-700 p-2 outline-none bg-gray-50 focus:border-primary-500 shadow-sm"
+                                        value={filterSubCategory}
+                                        onChange={(e) => setFilterSubCategory(e.target.value)}
+                                    >
+                                        <option value="All">ALL SUB-CATEGORIES</option>
+                                        {activeFilterSubCategories.map(subCat => (
+                                            <option key={subCat} value={subCat}>{subCat}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="space-y-4">
@@ -408,13 +644,22 @@ export default function TeacherDashboard() {
                                         try { opts = typeof q.mcq_options_json === 'string' ? JSON.parse(q.mcq_options_json) : q.mcq_options_json; } catch (e) {}
                                     }
                                     return (
-                                        <div key={q.id} className="border border-gray-200 p-5 rounded-sm bg-gray-50 hover:bg-white transition shadow-sm group">
+                                        <div key={q.id} className="border border-gray-200 p-5 rounded-lg bg-gray-50 hover:bg-white transition shadow-sm group">
                                             <div className="flex justify-between items-start mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="bg-primary-900 text-white text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-sm shadow-sm">
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    <span className="inline-flex items-center gap-1 bg-primary-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+                                                        <Folder className="w-3 h-3" />
                                                         {q.subject || 'Uncategorized'}
                                                     </span>
-                                                    <span className={`text-white text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-sm ${
+
+                                                    {q.sub_category && q.sub_category !== 'General' && (
+                                                        <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-900 border border-indigo-200 text-[10px] font-semibold px-2 py-0.5 rounded">
+                                                            <Tag className="w-2.5 h-2.5 text-indigo-600" />
+                                                            {q.sub_category}
+                                                        </span>
+                                                    )}
+
+                                                    <span className={`text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
                                                         q.type === 'mcq' ? 'bg-indigo-600' :
                                                         q.type === 'fill_blank' ? 'bg-amber-600' : 'bg-gray-600'
                                                     }`}>
@@ -424,16 +669,17 @@ export default function TeacherDashboard() {
                                                         {q.max_marks || 5} Marks
                                                     </span>
                                                 </div>
-                                                <span className="text-[10px] text-gray-400 font-bold tracking-widest">ID: {q.id.slice(0, 8)}...</span>
+                                                <span className="text-[10px] text-gray-400 font-mono">ID: {q.id.slice(0, 8)}</span>
                                             </div>
-                                            <div className="text-sm font-bold text-gray-900 mb-2" dangerouslySetInnerHTML={{ __html: q.question_text }} />
+
+                                            <div className="text-sm font-semibold text-gray-900 mb-2" dangerouslySetInnerHTML={{ __html: q.question_text }} />
                                             
                                             {q.type === 'mcq' && opts.length > 0 && (
-                                                <div className="grid grid-cols-2 gap-2 my-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 my-3">
                                                     {opts.map((opt: any) => {
                                                         const isAns = q.standard_answer === opt.key || q.standard_answer === opt.text;
                                                         return (
-                                                            <div key={opt.key} className={`p-2 border text-xs font-semibold rounded ${isAns ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold' : 'bg-white border-gray-200 text-gray-700'}`}>
+                                                            <div key={opt.key} className={`p-2 border text-xs font-medium rounded ${isAns ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold' : 'bg-white border-gray-200 text-gray-700'}`}>
                                                                 <span className="font-bold mr-1">{opt.key}:</span> {opt.text} {isAns && '✓ (Correct)'}
                                                             </div>
                                                         );
@@ -442,8 +688,8 @@ export default function TeacherDashboard() {
                                             )}
 
                                             <div className="mt-4 pt-3 border-t border-gray-200">
-                                                <p className="text-[10px] uppercase font-black tracking-widest text-green-700 mb-1">Standard Answer / Key:</p>
-                                                <div className="text-xs font-bold text-gray-800 bg-white p-2 border border-gray-200 inline-block rounded">
+                                                <p className="text-[10px] uppercase font-bold tracking-wider text-green-800 mb-1">Standard Answer / Model Key:</p>
+                                                <div className="text-xs font-medium text-gray-800 bg-white p-2.5 border border-gray-200 rounded font-mono">
                                                     {q.standard_answer || 'No standard answer.'}
                                                 </div>
                                             </div>
@@ -451,7 +697,9 @@ export default function TeacherDashboard() {
                                     );
                                 })}
                                 {filteredQuestions.length === 0 && (
-                                    <div className="text-center py-12 text-gray-400 text-xs font-bold uppercase tracking-widest">No questions found for this subject.</div>
+                                    <div className="text-center py-12 text-gray-400 text-xs font-bold uppercase tracking-widest border border-dashed border-gray-200 rounded-lg">
+                                        No questions found for the selected subject and sub-category.
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -459,18 +707,18 @@ export default function TeacherDashboard() {
                 )}
                 
                 {activeTab === 'reassessments' && (
-                    <div className="bg-white p-8 rounded-sm shadow-sm border border-gray-100">
+                    <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
                         <h1 className="text-2xl font-extrabold text-gray-900 mb-8 flex items-center gap-3">
                             <BookOpen className="text-primary-700" size={28} /> Pending Reassessments
                         </h1>
                         <div className="space-y-4">
                             {pendingReassessments.map(req => (
-                                <div key={req.id} className="border border-gray-200 p-5 rounded-sm bg-gray-50 flex justify-between items-center hover:bg-white transition shadow-sm cursor-pointer"
+                                <div key={req.id} className="border border-gray-200 p-5 rounded-lg bg-gray-50 flex justify-between items-center hover:bg-white transition shadow-sm cursor-pointer"
                                      onClick={() => navigate(`/teacher/submissions/${req.id}`)}
                                 >
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="bg-yellow-500 text-white text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-sm shadow-sm">
+                                            <span className="bg-yellow-500 text-white text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded shadow-sm">
                                                 Reassessment
                                             </span>
                                             <span className="text-xs font-bold text-gray-700">{req.student_name}</span>
@@ -485,7 +733,9 @@ export default function TeacherDashboard() {
                                 </div>
                             ))}
                             {pendingReassessments.length === 0 && (
-                                <div className="text-center py-12 text-gray-400 text-xs font-bold uppercase tracking-widest">No pending reassessments! You're all caught up.</div>
+                                <div className="text-center py-12 text-gray-400 text-xs font-bold uppercase tracking-widest border border-dashed border-gray-200 rounded-lg">
+                                    No pending reassessments! You're all caught up.
+                                </div>
                             )}
                         </div>
                     </div>

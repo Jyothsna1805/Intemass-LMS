@@ -11,9 +11,9 @@ router.get('/', authenticate, authorize(['master', 'teacher']), async (req, res)
     try {
         let questions;
         if (process.env.DB_TYPE === 'postgres') {
-            questions = await query("SELECT id, created_by, question_text, type, subject, standard_answer, max_marks, mcq_options_json, blank_answers_json, created_at FROM questions ORDER BY created_at DESC");
+            questions = await query("SELECT id, created_by, question_text, type, subject, sub_category, standard_answer, max_marks, mcq_options_json, blank_answers_json, created_at FROM questions ORDER BY created_at DESC");
         } else {
-            questions = await query("SELECT id, created_by, question_text, type, subject, standard_answer, max_marks, mcq_options_json, blank_answers_json, created_at FROM questions ORDER BY created_at DESC");
+            questions = await query("SELECT id, created_by, question_text, type, subject, sub_category, standard_answer, max_marks, mcq_options_json, blank_answers_json, created_at FROM questions ORDER BY created_at DESC");
         }
         res.json(questions);
     } catch (error) {
@@ -24,8 +24,9 @@ router.get('/', authenticate, authorize(['master', 'teacher']), async (req, res)
 
 // Create a new question (Master & Teacher)
 router.post('/', authenticate, authorize(['master', 'teacher']), async (req, res) => {
-    const { questionText, standardAnswer, type, subject, maxMarks, mcqOptions, blankAnswers } = req.body;
+    const { questionText, standardAnswer, type, subject, subCategory, maxMarks, mcqOptions, blankAnswers } = req.body;
     const qSubject = subject || 'Uncategorized';
+    const qSubCategory = subCategory || 'General';
     const qMaxMarks = maxMarks ? parseInt(maxMarks) : 5;
 
     if (!questionText || !type) {
@@ -43,15 +44,15 @@ router.post('/', authenticate, authorize(['master', 'teacher']), async (req, res
         let questionId;
         if (process.env.DB_TYPE === 'postgres') {
             const result = await execute(
-                "INSERT INTO questions(created_by, question_text, standard_answer, type, subject, max_marks, mcq_options_json, blank_answers_json) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-                [req.user.id, questionText, standardAnswer, type, qSubject, qMaxMarks, mcqOptionsJson, blankAnswersJson]
+                "INSERT INTO questions(created_by, question_text, standard_answer, type, subject, sub_category, max_marks, mcq_options_json, blank_answers_json) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+                [req.user.id, questionText, standardAnswer, type, qSubject, qSubCategory, qMaxMarks, mcqOptionsJson, blankAnswersJson]
             );
             questionId = result.rows[0].id;
         } else {
             questionId = generateId();
             await execute(
-                "INSERT INTO questions(id, created_by, question_text, standard_answer, type, subject, max_marks, mcq_options_json, blank_answers_json) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [questionId, req.user.id, questionText, standardAnswer, type, qSubject, qMaxMarks, mcqOptionsJson, blankAnswersJson]
+                "INSERT INTO questions(id, created_by, question_text, standard_answer, type, subject, sub_category, max_marks, mcq_options_json, blank_answers_json) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [questionId, req.user.id, questionText, standardAnswer, type, qSubject, qSubCategory, qMaxMarks, mcqOptionsJson, blankAnswersJson]
             );
         }
 

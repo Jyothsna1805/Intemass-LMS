@@ -30,13 +30,18 @@ const initDb = async () => {
             await dbInstance.query(schemaSql);
             console.log("Postgres database initialized");
             
-            // Fix: Add missing columns to questions table if they don't exist
+            // Fix: Add missing columns to questions and assignments table if they don't exist
             try {
                 await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS subject VARCHAR(100) DEFAULT \'Uncategorized\'');
+                await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS sub_category VARCHAR(100) DEFAULT \'General\'');
                 await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS max_marks INTEGER DEFAULT 5');
                 await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS mcq_options_json TEXT');
                 await dbInstance.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS blank_answers_json TEXT');
                 
+                // Add subject / sub_category to assignments
+                await dbInstance.query('ALTER TABLE assignments ADD COLUMN IF NOT EXISTS subject VARCHAR(100) DEFAULT \'General\'');
+                await dbInstance.query('ALTER TABLE assignments ADD COLUMN IF NOT EXISTS sub_category VARCHAR(100) DEFAULT \'General\'');
+
                 // Add missing columns to submissions table
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS extracted_diagram_url VARCHAR(500)');
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS ocr_text TEXT');
@@ -114,6 +119,10 @@ const initDb = async () => {
                     } else {
                         console.log("SQLite DB initialized");
                     }
+                    // Safe SQLite migrations for existing lms.db
+                    dbInstance.run("ALTER TABLE questions ADD COLUMN sub_category TEXT DEFAULT 'General'", () => {});
+                    dbInstance.run("ALTER TABLE assignments ADD COLUMN subject TEXT DEFAULT 'General'", () => {});
+                    dbInstance.run("ALTER TABLE assignments ADD COLUMN sub_category TEXT DEFAULT 'General'", () => {});
                 });
             }
         });

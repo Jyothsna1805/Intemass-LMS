@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS questions (
     standard_answer TEXT,        
     type TEXT CHECK (type IN ('essay', 'short_answer', 'mcq', 'fill_blank')),
     subject TEXT DEFAULT 'Uncategorized',
+    sub_category TEXT DEFAULT 'General',
     max_marks INTEGER DEFAULT 5,
     mcq_options_json TEXT,
     blank_answers_json TEXT,
@@ -32,6 +33,8 @@ CREATE TABLE IF NOT EXISTS assignments (
     teacher_id TEXT REFERENCES users(id),
     title TEXT,
     instructions TEXT,
+    subject TEXT DEFAULT 'General',
+    sub_category TEXT DEFAULT 'General',
     due_date TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

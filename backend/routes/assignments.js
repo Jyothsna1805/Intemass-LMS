@@ -12,19 +12,19 @@ router.get('/', authenticate, async (req, res) => {
         let assignments;
         if (req.user.role === 'teacher') {
             if (process.env.DB_TYPE === 'postgres') {
-                assignments = await query("SELECT * FROM assignments WHERE teacher_id = $1", [req.user.id]);
+                assignments = await query("SELECT * FROM assignments WHERE teacher_id = $1 ORDER BY created_at DESC", [req.user.id]);
             } else {
-                assignments = await query("SELECT * FROM assignments WHERE teacher_id = ?", [req.user.id]);
+                assignments = await query("SELECT * FROM assignments WHERE teacher_id = ? ORDER BY created_at DESC", [req.user.id]);
             }
         } else if (req.user.role === 'student' || req.user.role === 'master') {
-            // Students see all assignments for now (could be filtered by enrollment later)
+            // Students see all assignments
             if (process.env.DB_TYPE === 'postgres') {
-                assignments = await query("SELECT * FROM assignments");
+                assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
             } else {
-                assignments = await query("SELECT * FROM assignments");
+                assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
             }
         }
-        res.json(assignments);
+        res.json(assignments || []);
     } catch (error) {
         console.error("Error fetching assignments:", error);
         res.status(500).json({ error: 'Internal server error' });
@@ -33,7 +33,9 @@ router.get('/', authenticate, async (req, res) => {
 
 // Create assignment (Teacher only)
 router.post('/', authenticate, authorize('teacher'), async (req, res) => {
-    const { title, instructions, dueDate, questionIds } = req.body;
+    const { title, instructions, dueDate, questionIds, subject, subCategory } = req.body;
+    const aSubject = subject || 'General';
+    const aSubCategory = subCategory || 'General';
 
     if (!title || !questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
         return res.status(400).json({ error: 'Title and at least one question are required' });
@@ -43,8 +45,8 @@ router.post('/', authenticate, authorize('teacher'), async (req, res) => {
         let assignmentId;
         if (process.env.DB_TYPE === 'postgres') {
             const result = await execute(
-                "INSERT INTO assignments(teacher_id, title, instructions, due_date) VALUES($1, $2, $3, $4) RETURNING id",
-                [req.user.id, title, instructions, dueDate]
+                "INSERT INTO assignments(teacher_id, title, instructions, due_date, subject, sub_category) VALUES($1, $2, $3, $4, $5, $6) RETURNING id",
+                [req.user.id, title, instructions, dueDate, aSubject, aSubCategory]
             );
             assignmentId = result.rows[0].id;
 
@@ -55,8 +57,8 @@ router.post('/', authenticate, authorize('teacher'), async (req, res) => {
         } else {
             assignmentId = generateId();
             await execute(
-                "INSERT INTO assignments(id, teacher_id, title, instructions, due_date) VALUES(?, ?, ?, ?, ?)",
-                [assignmentId, req.user.id, title, instructions, dueDate]
+                "INSERT INTO assignments(id, teacher_id, title, instructions, due_date, subject, sub_category) VALUES(?, ?, ?, ?, ?, ?, ?)",
+                [assignmentId, req.user.id, title, instructions, dueDate, aSubject, aSubCategory]
             );
 
             for (const qId of questionIds) {
@@ -82,7 +84,7 @@ router.get('/:id', authenticate, async (req, res) => {
             assignmentRows = await query("SELECT * FROM assignments WHERE id = ?", [id]);
         }
 
-        if (assignmentRows.length === 0) {
+        if (!assignmentRows || assignmentRows.length === 0) {
             return res.status(404).json({ error: 'Assignment not found' });
         }
 
@@ -92,14 +94,14 @@ router.get('/:id', authenticate, async (req, res) => {
         let questionRows;
         if (process.env.DB_TYPE === 'postgres') {
             questionRows = await query(`
-                SELECT q.id, q.question_text, q.type, aq.max_points 
+                SELECT q.id, q.question_text, q.type, q.subject, q.sub_category, aq.max_points 
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
                 WHERE aq.assignment_id = $1
             `, [id]);
         } else {
             questionRows = await query(`
-                SELECT q.id, q.question_text, q.type, aq.max_points 
+                SELECT q.id, q.question_text, q.type, q.subject, q.sub_category, aq.max_points 
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
                 WHERE aq.assignment_id = ?
