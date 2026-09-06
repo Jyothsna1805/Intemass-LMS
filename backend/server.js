@@ -47,11 +47,22 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-// Serve the compiled React application directly from the Express API Server
-app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
+// Serve the compiled React application directly with no-cache on HTML to prevent stale browser caches
+app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist'), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 // Catch-all route to allow React Router to continuously handle client-side navigating securely 
 app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
 });
 
