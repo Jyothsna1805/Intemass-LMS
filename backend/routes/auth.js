@@ -72,6 +72,39 @@ router.post('/login', async (req, res) => {
         }
 
         if (users.length === 0) {
+            // Auto-provision demo student accounts if logging in with valid student email pattern
+            const isDemoStudent = /^\d+@intemass\.com$/i.test(email) || /^student\d*@intemass\.com$/i.test(email) || /^roll\d+@intemass\.com$/i.test(email);
+            if (isDemoStudent && password === 'password123') {
+                const passwordHash = await bcrypt.hash(password, 10);
+                const rollNum = email.split('@')[0];
+                const fullName = `Student ${rollNum} (Roll: ${String(rollNum).padStart(3, '0')})`;
+                const institution = 'MegaForte Singapore';
+                let newUserId;
+
+                if (process.env.DB_TYPE === 'postgres') {
+                    const result = await execute(
+                        "INSERT INTO users(email, password_hash, role) VALUES($1, $2, $3) RETURNING id",
+                        [email.toLowerCase(), passwordHash, 'student']
+                    );
+                    newUserId = result.rows[0].id;
+                    await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)", [newUserId, fullName, institution]);
+                } else {
+                    newUserId = generateId();
+                    await execute("INSERT INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)", [newUserId, email.toLowerCase(), passwordHash, 'student']);
+                    await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)", [newUserId, fullName, institution]);
+                }
+
+                const payload = {
+                    id: newUserId,
+                    email: email.toLowerCase(),
+                    role: 'student',
+                    fullName: fullName,
+                    institution: institution
+                };
+                const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+                return res.json({ message: 'Login successful', token, user: payload });
+            }
+
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
