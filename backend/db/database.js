@@ -100,6 +100,29 @@ const initDb = async () => {
                 `);
                 
             }
+
+            // Always ensure individual student logins exist (1@intemass.com, 2@intemass.com, etc.)
+            try {
+                const bcrypt = require('bcryptjs');
+                const defaultPassword = await bcrypt.hash('password123', 10);
+                const studentsToSeed = [
+                    { id: '11111111-1111-4111-8111-111111111111', email: '1@intemass.com', name: 'Student 1 (Roll: 001)', inst: 'MegaForte Singapore' },
+                    { id: '22222222-2222-4222-8222-222222222222', email: '2@intemass.com', name: 'Student 2 (Roll: 002)', inst: 'MegaForte Singapore' },
+                    { id: '33333333-3333-4333-8333-333333333333', email: '3@intemass.com', name: 'Student 3 (Roll: 003)', inst: 'MegaForte Singapore' },
+                    { id: '44444444-4444-4444-8444-444444444444', email: '4@intemass.com', name: 'Student 4 (Roll: 004)', inst: 'MegaForte Singapore' },
+                    { id: '55555555-5555-4555-8555-555555555555', email: '5@intemass.com', name: 'Student 5 (Roll: 005)', inst: 'MegaForte Singapore' }
+                ];
+                for (const stu of studentsToSeed) {
+                    const uCheck = await dbInstance.query('SELECT id FROM users WHERE email = $1', [stu.email]);
+                    if (uCheck.rows.length === 0) {
+                        await dbInstance.query('INSERT INTO users(id, email, password_hash, role) VALUES($1, $2, $3, $4)', [stu.id, stu.email, defaultPassword, 'student']);
+                        await dbInstance.query('INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)', [stu.id, stu.name, stu.inst]);
+                    }
+                }
+            } catch (seedErr) {
+                console.error("Error seeding extra student accounts in Postgres:", seedErr);
+            }
+
         } catch (e) {
             console.error("Error initializing postgres DB:", e);
         }
@@ -113,7 +136,7 @@ const initDb = async () => {
             } else {
                 console.log('Connected to the SQLite database.');
                 const schemaSql = fs.readFileSync(path.join(__dirname, 'schema_sqlite.sql')).toString();
-                dbInstance.exec(schemaSql, (err) => {
+                dbInstance.exec(schemaSql, async (err) => {
                     if (err) {
                         console.error("Error initializing sqlite DB:", err);
                     } else {
@@ -123,6 +146,24 @@ const initDb = async () => {
                     dbInstance.run("ALTER TABLE questions ADD COLUMN sub_category TEXT DEFAULT 'General'", () => {});
                     dbInstance.run("ALTER TABLE assignments ADD COLUMN subject TEXT DEFAULT 'General'", () => {});
                     dbInstance.run("ALTER TABLE assignments ADD COLUMN sub_category TEXT DEFAULT 'General'", () => {});
+
+                    // Seed student logins in SQLite
+                    try {
+                        const bcrypt = require('bcryptjs');
+                        const defaultPassword = await bcrypt.hash('password123', 10);
+                        const studentsToSeed = [
+                            { id: '11111111-1111-4111-8111-111111111111', email: '1@intemass.com', name: 'Student 1 (Roll: 001)', inst: 'MegaForte Singapore' },
+                            { id: '22222222-2222-4222-8222-222222222222', email: '2@intemass.com', name: 'Student 2 (Roll: 002)', inst: 'MegaForte Singapore' },
+                            { id: '33333333-3333-4333-8333-333333333333', email: '3@intemass.com', name: 'Student 3 (Roll: 003)', inst: 'MegaForte Singapore' },
+                            { id: '44444444-4444-4444-8444-444444444444', email: '4@intemass.com', name: 'Student 4 (Roll: 004)', inst: 'MegaForte Singapore' },
+                            { id: '55555555-5555-4555-8555-555555555555', email: '5@intemass.com', name: 'Student 5 (Roll: 005)', inst: 'MegaForte Singapore' }
+                        ];
+                        for (const stu of studentsToSeed) {
+                            dbInstance.run('INSERT OR IGNORE INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)', [stu.id, stu.email, defaultPassword, 'student'], () => {
+                                dbInstance.run('INSERT OR IGNORE INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)', [stu.id, stu.name, stu.inst]);
+                            });
+                        }
+                    } catch (e) {}
                 });
             }
         });

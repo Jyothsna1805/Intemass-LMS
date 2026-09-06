@@ -82,10 +82,21 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        let profile = null;
+        if (process.env.DB_TYPE === 'postgres') {
+            const pRes = await query("SELECT full_name, institution FROM profiles WHERE user_id = $1", [user.id]);
+            if (pRes.length > 0) profile = pRes[0];
+        } else {
+            const pRes = await query("SELECT full_name, institution FROM profiles WHERE user_id = ?", [user.id]);
+            if (pRes.length > 0) profile = pRes[0];
+        }
+
         const payload = {
             id: user.id,
             email: user.email,
-            role: user.role
+            role: user.role,
+            fullName: profile ? profile.full_name : (user.email.split('@')[0]),
+            institution: profile ? profile.institution : 'MegaForte Singapore'
         };
 
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
