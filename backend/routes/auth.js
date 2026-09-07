@@ -63,21 +63,35 @@ router.post('/login', async (req, res) => {
         return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // STRICT WHITELIST: Only these exact accounts are permitted to log in
+    const ALLOWED_ACCOUNTS = [
+        '1@intemass.com',
+        '2@intemass.com',
+        '3@intemass.com',
+        '4@intemass.com',
+        'student@intemass.com',
+        'teacher@intemass.com',
+        'master@intemass.com'
+    ];
+
+    if (!ALLOWED_ACCOUNTS.includes(normalizedEmail)) {
+        return res.status(401).json({ error: 'Access Denied. Only Students 1, 2, 3, 4 and Teacher accounts are authorized.' });
+    }
+
     try {
         let users;
         if (process.env.DB_TYPE === 'postgres') {
-            users = await query("SELECT * FROM users WHERE email = $1", [email]);
+            users = await query("SELECT * FROM users WHERE email = $1", [normalizedEmail]);
         } else {
-            users = await query("SELECT * FROM users WHERE email = ?", [email]);
+            users = await query("SELECT * FROM users WHERE email = ?", [normalizedEmail]);
         }
 
-        // Strictly allowed student logins limit (1 to 4)
-        const ALLOWED_DEMO_STUDENTS = ['1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com', 'student@intemass.com'];
-        const normalizedEmail = email.toLowerCase().trim();
-
         if (users.length === 0) {
-            // Strictly check if it's within the allowed 4 student logins (1 to 4)
-            if (ALLOWED_DEMO_STUDENTS.includes(normalizedEmail) && password === 'password123') {
+            // Auto-provision if it's one of the 4 authorized students
+            const ALLOWED_STUDENTS = ['1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com', 'student@intemass.com'];
+            if (ALLOWED_STUDENTS.includes(normalizedEmail) && password === 'password123') {
                 const passwordHash = await bcrypt.hash(password, 10);
                 const rollNum = normalizedEmail.split('@')[0];
                 const fullName = `Student ${rollNum} (Roll: ${String(rollNum).padStart(3, '0')})`;
@@ -108,16 +122,10 @@ router.post('/login', async (req, res) => {
                 return res.json({ message: 'Login successful', token, user: payload });
             }
 
-            return res.status(401).json({ error: 'Invalid credentials. Only authorized student logins (Students 1 to 4) can access.' });
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         const user = users[0];
-
-        // If an unauthorized numbered account outside 1-4 exists, block it
-        if (/^\d+@intemass\.com$/i.test(normalizedEmail) && !ALLOWED_DEMO_STUDENTS.includes(normalizedEmail)) {
-            return res.status(401).json({ error: 'This student login is not authorized. Please use Students 1 to 4.' });
-        }
-
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
