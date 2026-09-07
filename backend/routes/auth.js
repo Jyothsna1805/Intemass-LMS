@@ -71,12 +71,15 @@ router.post('/login', async (req, res) => {
             users = await query("SELECT * FROM users WHERE email = ?", [email]);
         }
 
+        // Strictly allowed student logins limit (1 to 4)
+        const ALLOWED_DEMO_STUDENTS = ['1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com', 'student@intemass.com'];
+        const normalizedEmail = email.toLowerCase().trim();
+
         if (users.length === 0) {
-            // Auto-provision demo student accounts if logging in with valid student email pattern
-            const isDemoStudent = /^\d+@intemass\.com$/i.test(email) || /^student\d*@intemass\.com$/i.test(email) || /^roll\d+@intemass\.com$/i.test(email);
-            if (isDemoStudent && password === 'password123') {
+            // Strictly check if it's within the allowed 4 student logins (1 to 4)
+            if (ALLOWED_DEMO_STUDENTS.includes(normalizedEmail) && password === 'password123') {
                 const passwordHash = await bcrypt.hash(password, 10);
-                const rollNum = email.split('@')[0];
+                const rollNum = normalizedEmail.split('@')[0];
                 const fullName = `Student ${rollNum} (Roll: ${String(rollNum).padStart(3, '0')})`;
                 const institution = 'MegaForte Singapore';
                 let newUserId;
@@ -84,19 +87,19 @@ router.post('/login', async (req, res) => {
                 if (process.env.DB_TYPE === 'postgres') {
                     const result = await execute(
                         "INSERT INTO users(email, password_hash, role) VALUES($1, $2, $3) RETURNING id",
-                        [email.toLowerCase(), passwordHash, 'student']
+                        [normalizedEmail, passwordHash, 'student']
                     );
                     newUserId = result.rows[0].id;
                     await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)", [newUserId, fullName, institution]);
                 } else {
                     newUserId = generateId();
-                    await execute("INSERT INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)", [newUserId, email.toLowerCase(), passwordHash, 'student']);
+                    await execute("INSERT INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)", [newUserId, normalizedEmail, passwordHash, 'student']);
                     await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)", [newUserId, fullName, institution]);
                 }
 
                 const payload = {
                     id: newUserId,
-                    email: email.toLowerCase(),
+                    email: normalizedEmail,
                     role: 'student',
                     fullName: fullName,
                     institution: institution
@@ -105,10 +108,16 @@ router.post('/login', async (req, res) => {
                 return res.json({ message: 'Login successful', token, user: payload });
             }
 
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Invalid credentials. Only authorized student logins (Students 1 to 4) can access.' });
         }
 
         const user = users[0];
+
+        // If an unauthorized numbered account outside 1-4 exists, block it
+        if (/^\d+@intemass\.com$/i.test(normalizedEmail) && !ALLOWED_DEMO_STUDENTS.includes(normalizedEmail)) {
+            return res.status(401).json({ error: 'This student login is not authorized. Please use Students 1 to 4.' });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
