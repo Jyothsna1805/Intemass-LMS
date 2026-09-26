@@ -387,6 +387,43 @@ router.patch('/:id/mark', authenticate, authorize('teacher'), async (req, res) =
     }
 });
 
+// Batch update marks and feedback for multiple students on a single question
+router.post('/batch-mark-question', authenticate, authorize(['teacher', 'master']), async (req, res) => {
+    const { marksData } = req.body;
+
+    if (!marksData || !Array.isArray(marksData) || marksData.length === 0) {
+        return res.status(400).json({ error: 'marksData array is required' });
+    }
+
+    try {
+        const now = new Date().toISOString();
+        for (const item of marksData) {
+            const { submissionId, marks, feedback } = item;
+            if (!submissionId) continue;
+
+            const marksValue = (marks !== '' && marks !== null && marks !== undefined) ? Number(marks) : null;
+            const feedbackValue = feedback !== undefined ? feedback : null;
+
+            if (process.env.DB_TYPE === 'postgres') {
+                await execute(
+                    "UPDATE submissions SET marks_awarded = $1, feedback = $2, marked_by = $3, marked_at = NOW() WHERE id = $4",
+                    [marksValue, feedbackValue, req.user.id, submissionId]
+                );
+            } else {
+                await execute(
+                    "UPDATE submissions SET marks_awarded = ?, feedback = ?, marked_by = ?, marked_at = ? WHERE id = ?",
+                    [marksValue, feedbackValue, req.user.id, now, submissionId]
+                );
+            }
+        }
+
+        res.json({ message: 'All student marks saved successfully', updatedCount: marksData.length });
+    } catch (error) {
+        console.error("Error batch marking submissions:", error);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
+    }
+});
+
 // Get student's own submissions
 router.get('/student/my_submissions', authenticate, authorize('student'), async (req, res) => {
     try {

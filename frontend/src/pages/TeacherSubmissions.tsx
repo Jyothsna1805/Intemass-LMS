@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, CheckCircle, Bell, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Bell, ShoppingCart, Layers, Sparkles } from 'lucide-react';
 
 interface Submission { id: string; marks_awarded: number | null; submitted_at: string; student_name: string; question_text: string; }
 
@@ -57,14 +57,48 @@ export default function TeacherSubmissions() {
             </nav>
 
             <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
-                <button onClick={() => navigate('/teacher-dashboard')} className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-primary-600 hover:text-primary-800 transition">
-                    <ArrowLeft size={16} className="mr-1" /> Back to Dashboard
-                </button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <button onClick={() => navigate('/teacher-dashboard')} className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-primary-600 hover:text-primary-800 transition">
+                        <ArrowLeft size={16} className="mr-1" /> Back to Dashboard
+                    </button>
+
+                    {/* Question-Wise Evaluation Launch CTA Button */}
+                    <button
+                        onClick={() => navigate(`/teacher/assignments/${id}/question-wise`)}
+                        className="bg-primary-900 hover:bg-primary-800 text-white px-5 py-2.5 rounded shadow text-xs font-black uppercase tracking-wider flex items-center gap-2 transition ring-2 ring-primary-500/20"
+                    >
+                        <Layers size={16} className="text-primary-300" />
+                        <span>Launch Question-Wise Batch Evaluation</span>
+                        <Sparkles size={14} className="text-amber-400 animate-pulse" />
+                    </button>
+                </div>
+
+                {/* Banner explaining Question-Wise Mode */}
+                <div className="bg-gradient-to-r from-primary-900 to-indigo-900 text-white p-5 rounded-lg shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="bg-green-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded">NEW FEATURE</span>
+                            <h2 className="text-sm font-extrabold uppercase tracking-wide">Horizontal Question-Wise Marking Mode</h2>
+                        </div>
+                        <p className="text-xs text-primary-100 max-w-2xl">
+                            Evaluate all students' answers to <strong>Question 1</strong> in one place alongside the model mark scheme, then move on to Question 2, 3...
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => navigate(`/teacher/assignments/${id}/question-wise`)}
+                        className="bg-white text-primary-950 hover:bg-gray-100 font-extrabold text-xs uppercase px-4 py-2 rounded shadow transition flex-shrink-0"
+                    >
+                        Start Batch Grading &rarr;
+                    </button>
+                </div>
 
                 <div className="bg-white p-8 rounded-sm shadow-sm border border-gray-100">
-                    <div className="border-b-2 border-primary-100 pb-4 mb-6">
-                        <h1 className="text-sm font-extrabold text-primary-900 uppercase tracking-widest mb-1">Submissions Overview</h1>
-                        <p className="text-xs text-gray-500 font-bold uppercase">{assignmentTitle}</p>
+                    <div className="border-b-2 border-primary-100 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h1 className="text-sm font-extrabold text-primary-900 uppercase tracking-widest mb-1">Submissions Overview (Individual Table)</h1>
+                            <p className="text-xs text-gray-500 font-bold uppercase">{assignmentTitle}</p>
+                        </div>
+                        <span className="text-xs font-bold text-gray-500">{submissions.length} Total Student Responses</span>
                     </div>
 
                     <div className="overflow-hidden border border-gray-200 shadow-sm rounded-sm">

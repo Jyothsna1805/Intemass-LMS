@@ -10,6 +10,7 @@ import StudentAssignment from './pages/StudentAssignment';
 import StudentSavedEssay from './pages/StudentSavedEssay';
 import TeacherSubmissions from './pages/TeacherSubmissions';
 import TeacherMarking from './pages/TeacherMarking';
+import QuestionWiseEvaluation from './pages/QuestionWiseEvaluation';
 import MassUploadDashboard from './pages/MassUploadDashboard';
 import ConsolidatedReports from './pages/ConsolidatedReports';
 import MassFeedbackManager from './pages/MassFeedbackManager';
@@ -44,6 +45,7 @@ function App() {
                     <Route path="/teacher-feedback" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherFeedbackPage /></ProtectedRoute>} />
 
                     <Route path="/teacher/assignments/:id/submissions" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherSubmissions /></ProtectedRoute>} />
+                    <Route path="/teacher/assignments/:id/question-wise" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><QuestionWiseEvaluation /></ProtectedRoute>} />
                     <Route path="/teacher/submissions/:id" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherMarking /></ProtectedRoute>} />
 
                     <Route path="/master-dashboard" element={<ProtectedRoute allowedRoles={['master']}><MasterDashboard /></ProtectedRoute>} />
