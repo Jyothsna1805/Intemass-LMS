@@ -65,19 +65,18 @@ router.post('/login', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // STRICT WHITELIST: Only these exact accounts are permitted to log in
+    // STRICT WHITELIST: Only these exact accounts are permitted to log in (Strictly 4 Students + Teacher/Master)
     const ALLOWED_ACCOUNTS = [
         '1@intemass.com',
         '2@intemass.com',
         '3@intemass.com',
         '4@intemass.com',
-        'student@intemass.com',
         'teacher@intemass.com',
         'master@intemass.com'
     ];
 
     if (!ALLOWED_ACCOUNTS.includes(normalizedEmail)) {
-        return res.status(401).json({ error: 'Access Denied. Only Students 1, 2, 3, 4 and Teacher accounts are authorized.' });
+        return res.status(401).json({ error: 'Access Denied. Only Students (Rolls 1 to 4) and Teacher accounts are authorized.' });
     }
 
     try {
@@ -90,7 +89,7 @@ router.post('/login', async (req, res) => {
 
         if (users.length === 0) {
             // Auto-provision if it's one of the 4 authorized students
-            const ALLOWED_STUDENTS = ['1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com', 'student@intemass.com'];
+            const ALLOWED_STUDENTS = ['1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com'];
             if (ALLOWED_STUDENTS.includes(normalizedEmail) && password === 'password123') {
                 const passwordHash = await bcrypt.hash(password, 10);
                 const rollNum = normalizedEmail.split('@')[0];

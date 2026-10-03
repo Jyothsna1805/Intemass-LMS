@@ -118,8 +118,10 @@ const initDb = async () => {
                         await dbInstance.query('INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)', [stu.id, stu.name, stu.inst]);
                     }
                 }
-                // Purge any unauthorized test accounts from DB
-                await dbInstance.query("DELETE FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com', 'student@intemass.com')");
+                // Purge any unauthorized test accounts and their submissions from DB
+                await dbInstance.query("DELETE FROM submissions WHERE student_id IN (SELECT id FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com'))");
+                await dbInstance.query("DELETE FROM profiles WHERE user_id IN (SELECT id FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com'))");
+                await dbInstance.query("DELETE FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com')");
             } catch (seedErr) {
                 console.error("Error seeding extra student accounts in Postgres:", seedErr);
             }
@@ -163,7 +165,9 @@ const initDb = async () => {
                                 dbInstance.run('INSERT OR IGNORE INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)', [stu.id, stu.name, stu.inst]);
                             });
                         }
-                        dbInstance.run("DELETE FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com', 'student@intemass.com')");
+                        dbInstance.run("DELETE FROM submissions WHERE student_id IN (SELECT id FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com'))");
+                        dbInstance.run("DELETE FROM profiles WHERE user_id IN (SELECT id FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com'))");
+                        dbInstance.run("DELETE FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com')");
                     } catch (e) {}
                 });
             }

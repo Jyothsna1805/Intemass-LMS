@@ -117,7 +117,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // Get submissions for an assignment (Teacher only)
-router.get('/:id/submissions', authenticate, authorize('teacher'), async (req, res) => {
+router.get('/:id/submissions', authenticate, authorize(['teacher', 'master']), async (req, res) => {
     const { id } = req.params;
     try {
         let submissions;
@@ -125,18 +125,20 @@ router.get('/:id/submissions', authenticate, authorize('teacher'), async (req, r
             submissions = await query(`
                 SELECT s.id, s.marks_awarded, s.submitted_at, p.full_name as student_name, q.question_text
                 FROM submissions s
+                JOIN users u ON s.student_id = u.id
                 JOIN profiles p ON s.student_id = p.user_id
                 JOIN questions q ON s.question_id = q.id
-                WHERE s.assignment_id = $1
+                WHERE s.assignment_id = $1 AND u.email IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com')
                 ORDER BY s.submitted_at DESC
             `, [id]);
         } else {
             submissions = await query(`
                 SELECT s.id, s.marks_awarded, s.submitted_at, p.full_name as student_name, q.question_text
                 FROM submissions s
+                JOIN users u ON s.student_id = u.id
                 JOIN profiles p ON s.student_id = p.user_id
                 JOIN questions q ON s.question_id = q.id
-                WHERE s.assignment_id = ?
+                WHERE s.assignment_id = ? AND u.email IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com')
                 ORDER BY s.submitted_at DESC
             `, [id]);
         }
@@ -186,14 +188,14 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
             `, [id]);
         }
 
-        // Fetch all registered students
+        // Fetch strictly the 4 authorized student accounts (Roll 1 to 4)
         let allStudents;
         if (process.env.DB_TYPE === 'postgres') {
             allStudents = await query(`
                 SELECT u.id, u.email, COALESCE(p.full_name, u.email) as student_name
                 FROM users u
                 LEFT JOIN profiles p ON u.id = p.user_id
-                WHERE u.role = 'student'
+                WHERE u.role = 'student' AND u.email IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com')
                 ORDER BY u.email ASC
             `);
         } else {
@@ -201,12 +203,12 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
                 SELECT u.id, u.email, COALESCE(p.full_name, u.email) as student_name
                 FROM users u
                 LEFT JOIN profiles p ON u.id = p.user_id
-                WHERE u.role = 'student'
+                WHERE u.role = 'student' AND u.email IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com')
                 ORDER BY u.email ASC
             `);
         }
 
-        // Fetch all submissions for this assignment with student info
+        // Fetch submissions strictly for the 4 authorized students
         let submissionRows;
         if (process.env.DB_TYPE === 'postgres') {
             submissionRows = await query(`
@@ -219,7 +221,7 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
                 FROM submissions s
                 JOIN users u ON s.student_id = u.id
                 LEFT JOIN profiles p ON s.student_id = p.user_id
-                WHERE s.assignment_id = $1
+                WHERE s.assignment_id = $1 AND u.email IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com')
                 ORDER BY s.submitted_at ASC
             `, [id]);
         } else {
@@ -233,7 +235,7 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
                 FROM submissions s
                 JOIN users u ON s.student_id = u.id
                 LEFT JOIN profiles p ON s.student_id = p.user_id
-                WHERE s.assignment_id = ?
+                WHERE s.assignment_id = ? AND u.email IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com')
                 ORDER BY s.submitted_at ASC
             `, [id]);
         }
@@ -376,12 +378,12 @@ router.post('/:id/seed-sample-submissions', authenticate, authorize(['teacher', 
             return res.status(400).json({ error: 'No questions found for this assignment.' });
         }
 
-        // Fetch students
+        // Fetch strictly the 4 student accounts
         let students;
         if (process.env.DB_TYPE === 'postgres') {
-            students = await query("SELECT id, email FROM users WHERE role = 'student' ORDER BY email ASC");
+            students = await query("SELECT id, email FROM users WHERE role = 'student' AND email IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com') ORDER BY email ASC");
         } else {
-            students = await query("SELECT id, email FROM users WHERE role = 'student' ORDER BY email ASC");
+            students = await query("SELECT id, email FROM users WHERE role = 'student' AND email IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com') ORDER BY email ASC");
         }
 
         if (!students || students.length === 0) {
