@@ -17,17 +17,19 @@ import {
     Filter,
     Search,
     Sparkles,
-    Check,
     Layers,
     User,
     BarChart3,
     ArrowRight,
     Bell,
-    ShoppingCart
+    ShoppingCart,
+    Users,
+    AlertCircle,
+    RotateCcw
 } from 'lucide-react';
 
 interface StudentAnswer {
-    id: string; // submission_id
+    id: string; // submission_id or pending_studentId_questionId
     student_id: string;
     question_id: string;
     answer_text: string | null;
@@ -37,10 +39,11 @@ interface StudentAnswer {
     topology_json: string | null;
     marks_awarded: number | null;
     feedback: string | null;
-    submitted_at: string;
+    submitted_at: string | null;
     marked_at: string | null;
     student_name: string;
     student_email: string;
+    is_submitted?: boolean;
     reassessment_status?: string;
     reassessment_request?: string;
     reassessment_teacher_comment?: string;
@@ -57,8 +60,10 @@ interface QuestionData {
     question_number: number;
     stats: {
         total_answers: number;
+        total_students_roster?: number;
         graded_answers: number;
         pending_answers: number;
+        unsubmitted_answers?: number;
         average_score: string | null;
         highest_score: number | null;
     };
@@ -82,6 +87,53 @@ interface OverallStats {
     completion_percentage: number;
 }
 
+// Clean text / HTML helper to ensure clean typography without dark background styles
+function renderCleanAnswerText(text: string | null) {
+    if (!text) return null;
+
+    // Remove inline style tags that contain background-color / color that cause dark mode artifacts
+    const cleaned = text
+        .replace(/style\s*=\s*"[^"]*"/gi, '')
+        .replace(/style\s*=\s*'[^']*'/gi, '')
+        .trim();
+
+    // If it contains HTML elements, render with sanitized container
+    const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(cleaned);
+
+    if (hasHtmlTags) {
+        return (
+            <div
+                className="text-sm text-gray-900 leading-relaxed font-sans space-y-2 [&_p]:mb-2 [&_span]:text-gray-900 [&_span]:bg-transparent"
+                dangerouslySetInnerHTML={{ __html: cleaned }}
+            />
+        );
+    }
+
+    return (
+        <p className="text-sm text-gray-900 leading-relaxed font-sans whitespace-pre-wrap">
+            {cleaned}
+        </p>
+    );
+}
+
+// Clean JSON feedback string to avoid displaying raw debug JSON
+function sanitizeFeedback(fb: string | null | undefined): string {
+    if (!fb) return '';
+    const trimmed = fb.trim();
+    if (trimmed.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed.debug) return '';
+            if (parsed.comment) return parsed.comment;
+            if (parsed.feedback) return parsed.feedback;
+            return '';
+        } catch {
+            return '';
+        }
+    }
+    return fb;
+}
+
 export default function QuestionWiseEvaluation() {
     const { id } = useParams() as { id: string };
     const navigate = useNavigate();
@@ -98,10 +150,11 @@ export default function QuestionWiseEvaluation() {
     const [feedbackState, setFeedbackState] = useState<{ [submissionId: string]: string }>({});
     
     // UI filters & helpers
-    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'graded'>('all');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'submitted' | 'pending' | 'graded'>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [showStandardAnswer, setShowStandardAnswer] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [seeding, setSeeding] = useState(false);
     const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
     const [activeImageModal, setActiveImageModal] = useState<string | null>(null);
 
@@ -129,7 +182,7 @@ export default function QuestionWiseEvaluation() {
             (data.questions || []).forEach((q: QuestionData) => {
                 q.student_answers.forEach((ans: StudentAnswer) => {
                     initialMarks[ans.id] = ans.marks_awarded !== null ? ans.marks_awarded : '';
-                    initialFeedback[ans.id] = ans.feedback || '';
+                    initialFeedback[ans.id] = sanitizeFeedback(ans.feedback);
                 });
             });
 
@@ -157,7 +210,6 @@ export default function QuestionWiseEvaluation() {
         }
         const num = Number(val);
         if (!isNaN(num)) {
-            // Clamp within 0 and maxMarks
             const clamped = Math.max(0, Math.min(maxMarks, num));
             setMarksState(prev => ({ ...prev, [submissionId]: clamped }));
         }
@@ -179,6 +231,25 @@ export default function QuestionWiseEvaluation() {
         });
     };
 
+    // Auto seed sample submissions from all 4 student accounts
+    const handleSeedAllStudents = async () => {
+        if (!window.confirm('Populate sample answers from all 4 students for this assignment? This allows you to immediately test grading all students at once.')) {
+            return;
+        }
+        setSeeding(true);
+        try {
+            const res = await api.post(`/assignments/${id}/seed-sample-submissions`);
+            setSaveSuccessMsg(res.data.message || 'Sample student answers populated successfully!');
+            await fetchData();
+            setTimeout(() => setSaveSuccessMsg(''), 5000);
+        } catch (err) {
+            console.error('Failed to seed sample submissions', err);
+            alert('Error generating sample answers. Please check server logs.');
+        } finally {
+            setSeeding(false);
+        }
+    };
+
     // Save marks for current question
     const handleSaveCurrentQuestion = async (advanceNext: boolean = false) => {
         if (!activeQuestion) return;
@@ -186,11 +257,20 @@ export default function QuestionWiseEvaluation() {
         setSaveSuccessMsg('');
 
         try {
-            const marksData = activeQuestion.student_answers.map(ans => ({
-                submissionId: ans.id,
-                marks: marksState[ans.id] !== '' && marksState[ans.id] !== undefined ? Number(marksState[ans.id]) : null,
-                feedback: feedbackState[ans.id] || ''
-            }));
+            // Filter only valid submitted student responses (skip pending non-submissions)
+            const marksData = activeQuestion.student_answers
+                .filter(ans => ans.is_submitted !== false && !ans.id.startsWith('pending_'))
+                .map(ans => ({
+                    submissionId: ans.id,
+                    marks: marksState[ans.id] !== '' && marksState[ans.id] !== undefined ? Number(marksState[ans.id]) : null,
+                    feedback: feedbackState[ans.id] || ''
+                }));
+
+            if (marksData.length === 0) {
+                alert('No active submissions to save for this question yet.');
+                setSaving(false);
+                return;
+            }
 
             await api.post('/submissions/batch-mark-question', { marksData });
 
@@ -201,43 +281,31 @@ export default function QuestionWiseEvaluation() {
             setQuestions(prev => {
                 const nextQs = [...prev];
                 const q = { ...nextQs[activeQuestionIdx] };
-                q.student_answers = q.student_answers.map(ans => ({
-                    ...ans,
-                    marks_awarded: marksState[ans.id] !== '' && marksState[ans.id] !== undefined ? Number(marksState[ans.id]) : null,
-                    feedback: feedbackState[ans.id] || '',
-                    marked_at: new Date().toISOString()
-                }));
+                q.student_answers = q.student_answers.map(ans => {
+                    if (ans.is_submitted === false || ans.id.startsWith('pending_')) return ans;
+                    return {
+                        ...ans,
+                        marks_awarded: marksState[ans.id] !== '' && marksState[ans.id] !== undefined ? Number(marksState[ans.id]) : null,
+                        feedback: feedbackState[ans.id] || '',
+                        marked_at: new Date().toISOString()
+                    };
+                });
 
-                const graded = q.student_answers.filter(a => a.marks_awarded !== null);
+                const graded = q.student_answers.filter(a => a.is_submitted !== false && a.marks_awarded !== null);
                 const scores = graded.map(a => Number(a.marks_awarded));
+                const totalSub = q.student_answers.filter(a => a.is_submitted !== false).length;
+
                 q.stats = {
-                    total_answers: q.student_answers.length,
+                    ...q.stats,
+                    total_answers: totalSub,
                     graded_answers: graded.length,
-                    pending_answers: q.student_answers.length - graded.length,
+                    pending_answers: totalSub - graded.length,
                     average_score: scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : null,
                     highest_score: scores.length > 0 ? Math.max(...scores) : null
                 };
 
                 nextQs[activeQuestionIdx] = q;
                 return nextQs;
-            });
-
-            // Update overall stats
-            setOverallStats(prev => {
-                if (!prev) return prev;
-                let totalGraded = 0;
-                questions.forEach((q, idx) => {
-                    const answers = idx === activeQuestionIdx ? 
-                        q.student_answers.filter(a => marksState[a.id] !== '' && marksState[a.id] !== undefined) :
-                        q.student_answers.filter(a => a.marks_awarded !== null);
-                    totalGraded += answers.length;
-                });
-                return {
-                    ...prev,
-                    total_graded: totalGraded,
-                    total_pending: prev.total_submissions - totalGraded,
-                    completion_percentage: prev.total_submissions > 0 ? Math.round((totalGraded / prev.total_submissions) * 100) : 0
-                };
             });
 
             if (advanceNext && activeQuestionIdx < questions.length - 1) {
@@ -252,14 +320,16 @@ export default function QuestionWiseEvaluation() {
         }
     };
 
-    // Quick fill all students on current question
+    // Quick fill all submitted students on current question
     const handleQuickFillAll = (ratio: number) => {
         if (!activeQuestion) return;
         const max = activeQuestion.max_marks;
-        const targetScore = Math.round(max * ratio * 2) / 2; // nearest 0.5
+        const targetScore = Math.round(max * ratio * 2) / 2;
         const updatedMarks = { ...marksState };
         activeQuestion.student_answers.forEach(ans => {
-            updatedMarks[ans.id] = targetScore;
+            if (ans.is_submitted !== false && !ans.id.startsWith('pending_')) {
+                updatedMarks[ans.id] = targetScore;
+            }
         });
         setMarksState(updatedMarks);
     };
@@ -290,9 +360,13 @@ export default function QuestionWiseEvaluation() {
 
     // Filter student answers
     const filteredAnswers = (activeQuestion?.student_answers || []).filter(ans => {
-        const isGraded = marksState[ans.id] !== '' && marksState[ans.id] !== undefined && marksState[ans.id] !== null;
-        if (filterStatus === 'pending' && isGraded) return false;
+        const isSubmitted = ans.is_submitted !== false && !ans.id.startsWith('pending_');
+        const isGraded = isSubmitted && marksState[ans.id] !== '' && marksState[ans.id] !== undefined && marksState[ans.id] !== null;
+
+        if (filterStatus === 'submitted' && !isSubmitted) return false;
+        if (filterStatus === 'pending' && (!isSubmitted || isGraded)) return false;
         if (filterStatus === 'graded' && !isGraded) return false;
+
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             const nameMatch = ans.student_name?.toLowerCase().includes(q);
@@ -362,29 +436,42 @@ export default function QuestionWiseEvaluation() {
                             </h1>
                         </div>
 
-                        {/* Overall Progress Widget */}
-                        {overallStats && (
-                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 sm:px-5 flex items-center gap-6">
-                                <div>
-                                    <div className="flex items-center justify-between gap-4 mb-1">
-                                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">Batch Progress</span>
-                                        <span className="text-xs font-black text-primary-900">{overallStats.completion_percentage}%</span>
+                        {/* Overall Progress & Auto-Seed Actions */}
+                        <div className="flex items-center gap-3">
+                            {/* Auto-Populate Button */}
+                            <button
+                                disabled={seeding}
+                                onClick={handleSeedAllStudents}
+                                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow transition flex items-center gap-1.5 disabled:opacity-50"
+                                title="Populate sample submissions for all registered students"
+                            >
+                                <Users size={14} />
+                                <span>{seeding ? 'Populating...' : '⚡ Populate All 4 Students'}</span>
+                            </button>
+
+                            {overallStats && (
+                                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 sm:px-4 flex items-center gap-4">
+                                    <div>
+                                        <div className="flex items-center justify-between gap-3 mb-1">
+                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600">Grading Progress</span>
+                                            <span className="text-xs font-black text-primary-900">{overallStats.completion_percentage}%</span>
+                                        </div>
+                                        <div className="w-36 bg-gray-200 h-2 rounded-full overflow-hidden">
+                                            <div 
+                                                className="bg-green-600 h-full transition-all duration-500 rounded-full" 
+                                                style={{ width: `${overallStats.completion_percentage}%` }}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="w-48 bg-gray-200 h-2 rounded-full overflow-hidden">
-                                        <div 
-                                            className="bg-green-600 h-full transition-all duration-500 rounded-full" 
-                                            style={{ width: `${overallStats.completion_percentage}%` }}
-                                        />
+                                    <div className="border-l border-slate-200 pl-3 text-left">
+                                        <p className="text-xs font-bold text-gray-800">
+                                            <span className="text-green-700 font-extrabold">{overallStats.total_graded}</span> / {overallStats.total_submissions} Graded
+                                        </p>
+                                        <p className="text-[10px] text-gray-500 font-medium">{overallStats.total_students} Total Students</p>
                                     </div>
                                 </div>
-                                <div className="border-l border-slate-200 pl-4 text-left">
-                                    <p className="text-xs font-bold text-gray-800">
-                                        <span className="text-green-700 font-extrabold">{overallStats.total_graded}</span> / {overallStats.total_submissions} Graded
-                                    </p>
-                                    <p className="text-[10px] text-gray-500 font-medium">{overallStats.total_students} Students Participating</p>
-                                </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
 
                     {/* Question Tabs Bar */}
@@ -487,7 +574,7 @@ export default function QuestionWiseEvaluation() {
                                 <Sparkles size={16} className="text-indigo-600" />
                                 Official Standard Model Answer & Marking Scheme
                             </div>
-                            <div className="text-xs text-indigo-900 bg-white/80 p-4 rounded-lg border border-indigo-200 leading-relaxed font-mono whitespace-pre-wrap">
+                            <div className="text-sm text-indigo-950 bg-white p-4 rounded-lg border border-indigo-200 leading-relaxed font-sans whitespace-pre-wrap shadow-xs">
                                 {activeQuestion.standard_answer || 'No standard answer provided for this question.'}
                             </div>
                         </div>
@@ -499,7 +586,7 @@ export default function QuestionWiseEvaluation() {
                     <div className="flex items-center gap-2">
                         <Layers size={18} className="text-primary-700" />
                         <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider">
-                            Student Answers for Question {activeQuestion.question_number} ({filteredAnswers.length} of {activeQuestion.student_answers.length})
+                            Student Answers for Question {activeQuestion.question_number} ({filteredAnswers.length} Students Listed)
                         </h2>
                     </div>
 
@@ -511,6 +598,12 @@ export default function QuestionWiseEvaluation() {
                                 className={`px-2.5 py-1 rounded ${filterStatus === 'all' ? 'bg-white text-primary-900 shadow-xs' : 'text-gray-600 hover:text-gray-900'}`}
                             >
                                 All ({activeQuestion.student_answers.length})
+                            </button>
+                            <button
+                                onClick={() => setFilterStatus('submitted')}
+                                className={`px-2.5 py-1 rounded ${filterStatus === 'submitted' ? 'bg-white text-blue-900 shadow-xs' : 'text-gray-600 hover:text-gray-900'}`}
+                            >
+                                Submitted ({activeQuestion.stats.total_answers})
                             </button>
                             <button
                                 onClick={() => setFilterStatus('pending')}
@@ -543,14 +636,14 @@ export default function QuestionWiseEvaluation() {
                             <button
                                 onClick={() => handleQuickFillAll(1.0)}
                                 className="text-[10px] font-bold bg-green-50 text-green-700 hover:bg-green-100 px-2 py-1 rounded border border-green-200 transition"
-                                title="Set full marks for all students on this question"
+                                title="Set full marks for all submitted students on this question"
                             >
                                 +Full All
                             </button>
                             <button
                                 onClick={() => handleQuickFillAll(0.5)}
                                 className="text-[10px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition"
-                                title="Set half marks for all students on this question"
+                                title="Set half marks for all submitted students on this question"
                             >
                                 +Half All
                             </button>
@@ -560,22 +653,28 @@ export default function QuestionWiseEvaluation() {
 
                 {/* STUDENT CARDS LIST */}
                 <div className="space-y-4">
-                    {filteredAnswers.map((ans, idx) => {
+                    {filteredAnswers.map((ans) => {
+                        const isSubmitted = ans.is_submitted !== false && !ans.id.startsWith('pending_');
                         const currentMark = marksState[ans.id];
-                        const isMarked = currentMark !== '' && currentMark !== undefined && currentMark !== null;
-                        const currentFeedback = feedbackState[ans.id] || '';
+                        const isMarked = isSubmitted && currentMark !== '' && currentMark !== undefined && currentMark !== null;
 
                         return (
                             <div 
                                 key={ans.id}
                                 className={`bg-white rounded-xl border transition shadow-sm ${
-                                    isMarked ? 'border-gray-200' : 'border-amber-300 ring-1 ring-amber-100'
+                                    !isSubmitted 
+                                        ? 'border-gray-200 bg-gray-50/50 opacity-80'
+                                        : isMarked 
+                                            ? 'border-gray-200' 
+                                            : 'border-amber-300 ring-1 ring-amber-100'
                                 }`}
                             >
                                 {/* Card Header */}
-                                <div className="p-4 border-b border-gray-100 bg-gray-50/60 rounded-t-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="p-4 border-b border-gray-100 bg-gray-50/70 rounded-t-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-primary-900 text-white font-black text-xs flex items-center justify-center shadow-sm">
+                                        <div className={`w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shadow-sm ${
+                                            isSubmitted ? 'bg-primary-900 text-white' : 'bg-gray-300 text-gray-600'
+                                        }`}>
                                             {ans.student_name ? ans.student_name.slice(0, 2).toUpperCase() : 'ST'}
                                         </div>
                                         <div>
@@ -584,9 +683,15 @@ export default function QuestionWiseEvaluation() {
                                                 <span className="text-xs text-gray-500 font-mono">({ans.student_email})</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-[10px] text-gray-400 font-medium">
-                                                <span>Submitted: {new Date(ans.submitted_at).toLocaleString()}</span>
-                                                {ans.marked_at && (
-                                                    <span>• Evaluated: {new Date(ans.marked_at).toLocaleDateString()}</span>
+                                                {isSubmitted ? (
+                                                    <>
+                                                        <span>Submitted: {ans.submitted_at ? new Date(ans.submitted_at).toLocaleString() : 'Recent'}</span>
+                                                        {ans.marked_at && (
+                                                            <span>• Evaluated: {new Date(ans.marked_at).toLocaleDateString()}</span>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-400 italic">No answer submitted yet by this student</span>
                                                 )}
                                             </div>
                                         </div>
@@ -594,7 +699,11 @@ export default function QuestionWiseEvaluation() {
 
                                     {/* Status Badge */}
                                     <div>
-                                        {isMarked ? (
+                                        {!isSubmitted ? (
+                                            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full border border-gray-200">
+                                                <AlertCircle size={13} /> Not Submitted
+                                            </span>
+                                        ) : isMarked ? (
                                             <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-black px-3 py-1 rounded-full border border-green-200">
                                                 <CheckCircle2 size={13} /> Scored: {currentMark} / {activeQuestion.max_marks}
                                             </span>
@@ -607,137 +716,143 @@ export default function QuestionWiseEvaluation() {
                                 </div>
 
                                 {/* Card Body: Two-Column Layout (Student Answer vs Teacher Marking Station) */}
-                                <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                {isSubmitted ? (
+                                    <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                                    {/* Left Column: Student Answer & Attachments (7 Cols) */}
-                                    <div className="lg:col-span-7 space-y-4">
-                                        <div>
-                                            <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                                <FileText size={13} /> Student Response
-                                            </h4>
-                                            
-                                            {ans.answer_text ? (
-                                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs font-mono text-gray-800 leading-relaxed whitespace-pre-wrap select-text">
-                                                    {ans.answer_text}
+                                        {/* Left Column: Student Answer & Attachments (7 Cols) */}
+                                        <div className="lg:col-span-7 space-y-4">
+                                            <div>
+                                                <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                    <FileText size={13} /> Student Response
+                                                </h4>
+                                                
+                                                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-inner text-gray-900">
+                                                    {ans.answer_text ? (
+                                                        renderCleanAnswerText(ans.answer_text)
+                                                    ) : (
+                                                        <div className="text-xs text-gray-400 italic">
+                                                            No typed text submitted (check diagram or attachment below).
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4 text-xs text-gray-400 italic">
-                                                    No typed text submitted (check diagram or attachment below).
+                                            </div>
+
+                                            {/* Diagram or File Attachment Preview */}
+                                            {(ans.extracted_diagram_url || ans.file_url) && (
+                                                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                                                            <Eye size={12} /> Handwritten / Diagram Attachment
+                                                        </span>
+                                                        <button
+                                                            onClick={() => setActiveImageModal(ans.extracted_diagram_url || ans.file_url)}
+                                                            className="text-[10px] text-primary-700 font-bold hover:underline flex items-center gap-1"
+                                                        >
+                                                            <Maximize2 size={11} /> Expand Diagram
+                                                        </button>
+                                                    </div>
+                                                    <div 
+                                                        className="cursor-pointer max-h-48 overflow-hidden rounded border border-gray-300 bg-white hover:opacity-90 transition flex justify-center items-center"
+                                                        onClick={() => setActiveImageModal(ans.extracted_diagram_url || ans.file_url)}
+                                                    >
+                                                        <img 
+                                                            src={ans.extracted_diagram_url || ans.file_url || ''} 
+                                                            alt="Student Answer Diagram" 
+                                                            className="max-h-48 object-contain"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* OCR Transcribed Text if available */}
+                                            {ans.ocr_text && (
+                                                <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-3 text-xs text-amber-950 font-mono">
+                                                    <span className="font-bold text-[10px] uppercase tracking-wider block text-amber-800 mb-1">OCR Transcribed Text:</span>
+                                                    <p className="line-clamp-3">{ans.ocr_text}</p>
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Diagram or File Attachment Preview */}
-                                        {(ans.extracted_diagram_url || ans.file_url) && (
-                                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                        {/* Right Column: Teacher Grading Station (5 Cols) */}
+                                        <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-4">
+                                            <div>
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                                                        <Eye size={12} /> Handwritten / Diagram Attachment
-                                                    </span>
-                                                    <button
-                                                        onClick={() => setActiveImageModal(ans.extracted_diagram_url || ans.file_url)}
-                                                        className="text-[10px] text-primary-700 font-bold hover:underline flex items-center gap-1"
-                                                    >
-                                                        <Maximize2 size={11} /> Expand Diagram
-                                                    </button>
+                                                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">
+                                                        Award Score (0 - {activeQuestion.max_marks})
+                                                    </label>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleQuickScore(ans.id, 0)}
+                                                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                                        >
+                                                            0
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleQuickScore(ans.id, Math.round(activeQuestion.max_marks * 0.5 * 2) / 2)}
+                                                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                                        >
+                                                            Half
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleQuickScore(ans.id, activeQuestion.max_marks)}
+                                                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 hover:bg-green-200"
+                                                        >
+                                                            Full ({activeQuestion.max_marks})
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div 
-                                                    className="cursor-pointer max-h-48 overflow-hidden rounded border border-gray-300 bg-white hover:opacity-90 transition flex justify-center items-center"
-                                                    onClick={() => setActiveImageModal(ans.extracted_diagram_url || ans.file_url)}
-                                                >
-                                                    <img 
-                                                        src={ans.extracted_diagram_url || ans.file_url || ''} 
-                                                        alt="Student Answer Diagram" 
-                                                        className="max-h-48 object-contain"
+
+                                                {/* Score Input Box */}
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <input
+                                                        type="number"
+                                                        step="0.5"
+                                                        min="0"
+                                                        max={activeQuestion.max_marks}
+                                                        value={marksState[ans.id] !== undefined ? marksState[ans.id] : ''}
+                                                        onChange={(e) => handleMarkChange(ans.id, e.target.value, activeQuestion.max_marks)}
+                                                        placeholder="Score"
+                                                        className="w-24 px-3 py-2 text-center text-lg font-black text-primary-900 bg-white border-2 border-gray-300 focus:border-primary-600 rounded-lg outline-none"
                                                     />
+                                                    <span className="text-sm font-bold text-gray-400">/ {activeQuestion.max_marks} Points</span>
                                                 </div>
-                                            </div>
-                                        )}
 
-                                        {/* OCR Transcribed Text if available */}
-                                        {ans.ocr_text && (
-                                            <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-3 text-xs text-amber-950 font-mono">
-                                                <span className="font-bold text-[10px] uppercase tracking-wider block text-amber-800 mb-1">OCR Transcribed Text:</span>
-                                                <p className="line-clamp-3">{ans.ocr_text}</p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Right Column: Teacher Grading Station (5 Cols) */}
-                                    <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-4">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <label className="text-xs font-black text-gray-800 uppercase tracking-wider">
-                                                    Award Score (0 - {activeQuestion.max_marks})
+                                                {/* Feedback Textarea */}
+                                                <label className="block text-xs font-black text-gray-800 uppercase tracking-wider mb-1.5">
+                                                    Student Feedback / Correction Notes
                                                 </label>
-                                                <div className="flex items-center gap-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleQuickScore(ans.id, 0)}
-                                                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                                    >
-                                                        0
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleQuickScore(ans.id, Math.round(activeQuestion.max_marks * 0.5 * 2) / 2)}
-                                                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 hover:bg-blue-200"
-                                                    >
-                                                        Half
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleQuickScore(ans.id, activeQuestion.max_marks)}
-                                                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 hover:bg-green-200"
-                                                    >
-                                                        Full ({activeQuestion.max_marks})
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Score Input Box */}
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <input
-                                                    type="number"
-                                                    step="0.5"
-                                                    min="0"
-                                                    max={activeQuestion.max_marks}
-                                                    value={marksState[ans.id] !== undefined ? marksState[ans.id] : ''}
-                                                    onChange={(e) => handleMarkChange(ans.id, e.target.value, activeQuestion.max_marks)}
-                                                    placeholder="Score"
-                                                    className="w-24 px-3 py-2 text-center text-lg font-black text-primary-900 bg-white border-2 border-gray-300 focus:border-primary-600 rounded-lg outline-none"
+                                                <textarea
+                                                    rows={3}
+                                                    value={feedbackState[ans.id] || ''}
+                                                    onChange={(e) => handleFeedbackChange(ans.id, e.target.value)}
+                                                    placeholder="Provide actionable guidance or corrections..."
+                                                    className="w-full text-xs p-2.5 bg-white border border-gray-300 focus:border-primary-600 rounded-lg outline-none resize-y"
                                                 />
-                                                <span className="text-sm font-bold text-gray-400">/ {activeQuestion.max_marks} Points</span>
-                                            </div>
 
-                                            {/* Feedback Textarea */}
-                                            <label className="block text-xs font-black text-gray-800 uppercase tracking-wider mb-1.5">
-                                                Student Feedback / Correction Notes
-                                            </label>
-                                            <textarea
-                                                rows={3}
-                                                value={feedbackState[ans.id] || ''}
-                                                onChange={(e) => handleFeedbackChange(ans.id, e.target.value)}
-                                                placeholder="Provide actionable guidance or corrections..."
-                                                className="w-full text-xs p-2.5 bg-white border border-gray-300 focus:border-primary-600 rounded-lg outline-none resize-y"
-                                            />
-
-                                            {/* Feedback Presets Pills */}
-                                            <div className="flex flex-wrap gap-1 mt-2">
-                                                {feedbackPresets.map((preset, pIdx) => (
-                                                    <button
-                                                        key={pIdx}
-                                                        type="button"
-                                                        onClick={() => handleQuickFeedback(ans.id, preset)}
-                                                        className="text-[9px] font-medium bg-white hover:bg-primary-50 text-gray-600 hover:text-primary-800 border border-gray-200 px-2 py-0.5 rounded transition"
-                                                    >
-                                                        + {preset.slice(0, 24)}...
-                                                    </button>
-                                                ))}
+                                                {/* Feedback Presets Pills */}
+                                                <div className="flex flex-wrap gap-1 mt-2">
+                                                    {feedbackPresets.map((preset, pIdx) => (
+                                                        <button
+                                                            key={pIdx}
+                                                            type="button"
+                                                            onClick={() => handleQuickFeedback(ans.id, preset)}
+                                                            className="text-[9px] font-medium bg-white hover:bg-primary-50 text-gray-600 hover:text-primary-800 border border-gray-200 px-2 py-0.5 rounded transition"
+                                                        >
+                                                            + {preset.slice(0, 24)}...
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="p-6 text-center text-gray-400 text-xs">
+                                        Student has not submitted a response for Question {activeQuestion.question_number} yet.
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

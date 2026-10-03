@@ -36,7 +36,20 @@ export default function TeacherMarking() {
                 const res = await api.get(`/submissions/${id}`);
                 setSubmission(res.data);
                 setMarks(res.data.marks_awarded ?? '');
-                setFeedback(res.data.feedback || '');
+                
+                let fb = res.data.feedback || '';
+                if (fb.trim().startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(fb);
+                        if (parsed.debug) fb = '';
+                        else if (parsed.comment) fb = parsed.comment;
+                        else if (parsed.feedback) fb = parsed.feedback;
+                        else fb = '';
+                    } catch {
+                        // keep fb as is
+                    }
+                }
+                setFeedback(fb);
             } catch (err) { console.error(err); setError('Failed to load submission.'); }
         };
         fetchSubmission();

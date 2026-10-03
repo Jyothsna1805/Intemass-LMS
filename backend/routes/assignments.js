@@ -186,6 +186,26 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
             `, [id]);
         }
 
+        // Fetch all registered students
+        let allStudents;
+        if (process.env.DB_TYPE === 'postgres') {
+            allStudents = await query(`
+                SELECT u.id, u.email, COALESCE(p.full_name, u.email) as student_name
+                FROM users u
+                LEFT JOIN profiles p ON u.id = p.user_id
+                WHERE u.role = 'student'
+                ORDER BY u.email ASC
+            `);
+        } else {
+            allStudents = await query(`
+                SELECT u.id, u.email, COALESCE(p.full_name, u.email) as student_name
+                FROM users u
+                LEFT JOIN profiles p ON u.id = p.user_id
+                WHERE u.role = 'student'
+                ORDER BY u.email ASC
+            `);
+        }
+
         // Fetch all submissions for this assignment with student info
         let submissionRows;
         if (process.env.DB_TYPE === 'postgres') {
@@ -218,15 +238,79 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
             `, [id]);
         }
 
-        // Distinct students count
-        const uniqueStudentIds = new Set(submissionRows.map(s => s.student_id));
+        // Clean feedback JSON helper
+        const cleanFeedbackString = (fb) => {
+            if (!fb) return '';
+            if (typeof fb === 'string' && fb.trim().startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(fb);
+                    if (parsed.debug) return '';
+                    if (parsed.comment) return parsed.comment;
+                    if (parsed.feedback) return parsed.feedback;
+                    return '';
+                } catch (e) {
+                    return fb;
+                }
+            }
+            return fb;
+        };
 
-        // Group student responses by question
-        let totalSubmissionsCount = submissionRows.length;
+        // Clean HTML text helper (strip messy inline style attributes that ruin readability)
+        const sanitizeStudentText = (str) => {
+            if (!str) return '';
+            return str
+                .replace(/style\s*=\s*"[^"]*"/gi, '')
+                .replace(/style\s*=\s*'[^']*'/gi, '')
+                .trim();
+        };
+
+        // Map submissions with cleaned text and feedback
+        const cleanedSubmissions = submissionRows.map(s => ({
+            ...s,
+            answer_text: sanitizeStudentText(s.answer_text),
+            feedback: cleanFeedbackString(s.feedback)
+        }));
+
+        // Group student responses by question including all class students
+        let totalSubmissionsCount = cleanedSubmissions.length;
         let totalGradedCount = 0;
 
         const questionsWithAnswers = (questionRows || []).map((q, idx) => {
-            const answersForQ = submissionRows.filter(s => s.question_id === q.id);
+            const answersForQ = cleanedSubmissions.filter(s => s.question_id === q.id);
+            const submittedStudentIds = new Set(answersForQ.map(s => s.student_id));
+
+            // Include submitted answers
+            const studentAnswersList = [...answersForQ.map(s => ({
+                ...s,
+                is_submitted: true
+            }))];
+
+            // Also append registered students who haven't submitted yet
+            allStudents.forEach(stu => {
+                if (!submittedStudentIds.has(stu.id)) {
+                    studentAnswersList.push({
+                        id: `pending_${stu.id}_${q.id}`,
+                        student_id: stu.id,
+                        question_id: q.id,
+                        answer_text: null,
+                        file_url: null,
+                        extracted_diagram_url: null,
+                        ocr_text: null,
+                        topology_json: null,
+                        marks_awarded: null,
+                        feedback: '',
+                        submitted_at: null,
+                        marked_at: null,
+                        student_name: stu.student_name || stu.email,
+                        student_email: stu.email,
+                        is_submitted: false
+                    });
+                }
+            });
+
+            // Sort by student email
+            studentAnswersList.sort((a, b) => (a.student_email || '').localeCompare(b.student_email || ''));
+
             const gradedAnswers = answersForQ.filter(s => s.marks_awarded !== null && s.marks_awarded !== undefined);
             totalGradedCount += gradedAnswers.length;
 
@@ -239,12 +323,14 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
                 question_number: idx + 1,
                 stats: {
                     total_answers: answersForQ.length,
+                    total_students_roster: allStudents.length,
                     graded_answers: gradedAnswers.length,
                     pending_answers: answersForQ.length - gradedAnswers.length,
+                    unsubmitted_answers: allStudents.length - answersForQ.length,
                     average_score: avgScore,
                     highest_score: highestScore
                 },
-                student_answers: answersForQ
+                student_answers: studentAnswersList
             };
         });
 
@@ -252,7 +338,7 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
             assignment,
             questions: questionsWithAnswers,
             stats: {
-                total_students: uniqueStudentIds.size,
+                total_students: allStudents.length,
                 total_submissions: totalSubmissionsCount,
                 total_graded: totalGradedCount,
                 total_pending: totalSubmissionsCount - totalGradedCount,
@@ -263,6 +349,91 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
     } catch (error) {
         console.error("Error fetching question-wise submissions:", error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Auto-seed sample submissions from all 4 whitelist students for testing/grading
+router.post('/:id/seed-sample-submissions', authenticate, authorize(['teacher', 'master']), async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Fetch questions for assignment
+        let questions;
+        if (process.env.DB_TYPE === 'postgres') {
+            questions = await query(`
+                SELECT q.id, q.question_text, q.standard_answer, COALESCE(aq.max_points, q.max_marks, 5) as max_marks
+                FROM questions q JOIN assignment_questions aq ON q.id = aq.question_id
+                WHERE aq.assignment_id = $1
+            `, [id]);
+        } else {
+            questions = await query(`
+                SELECT q.id, q.question_text, q.standard_answer, COALESCE(aq.max_points, q.max_marks, 5) as max_marks
+                FROM questions q JOIN assignment_questions aq ON q.id = aq.question_id
+                WHERE aq.assignment_id = ?
+            `, [id]);
+        }
+
+        if (!questions || questions.length === 0) {
+            return res.status(400).json({ error: 'No questions found for this assignment.' });
+        }
+
+        // Fetch students
+        let students;
+        if (process.env.DB_TYPE === 'postgres') {
+            students = await query("SELECT id, email FROM users WHERE role = 'student' ORDER BY email ASC");
+        } else {
+            students = await query("SELECT id, email FROM users WHERE role = 'student' ORDER BY email ASC");
+        }
+
+        if (!students || students.length === 0) {
+            return res.status(400).json({ error: 'No student accounts found.' });
+        }
+
+        const sampleTemplates = [
+            (std) => `The core principle involves the following: ${std ? std.slice(0, 120) : 'Detailed step-by-step reasoning with structural analysis and empirical validation.'} As stated in the primary literature, this establishes sustainable equilibrium.`,
+            (std) => `According to the framework, this can be explained through two dimensions: first, the foundational constraints; second, the strategic outcome. Consequently, the findings align closely with standard theorems.`,
+            (std) => `A comprehensive overview demonstrates that key variables directly correlate with the target outcome. In particular, the historical context and legislative precedents substantiate this conclusion.`,
+            (std) => `Based on the assigned material, the critical factors include systemic efficiency, regulatory compliance, and operational dynamics. Thus, the solution satisfies all core criteria.`
+        ];
+
+        let insertedCount = 0;
+        for (let sIdx = 0; sIdx < students.length; sIdx++) {
+            const student = students[sIdx];
+            for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+                const question = questions[qIdx];
+                
+                // Check if already submitted
+                let existing;
+                if (process.env.DB_TYPE === 'postgres') {
+                    existing = await query("SELECT id FROM submissions WHERE student_id = $1 AND assignment_id = $2 AND question_id = $3", [student.id, id, question.id]);
+                } else {
+                    existing = await query("SELECT id FROM submissions WHERE student_id = ? AND assignment_id = ? AND question_id = ?", [student.id, id, question.id]);
+                }
+
+                if (!existing || existing.length === 0) {
+                    const templateFn = sampleTemplates[(sIdx + qIdx) % sampleTemplates.length];
+                    const generatedAnswer = templateFn(question.standard_answer);
+
+                    if (process.env.DB_TYPE === 'postgres') {
+                        await execute(
+                            "INSERT INTO submissions(student_id, assignment_id, question_id, answer_text, marks_awarded, feedback) VALUES($1, $2, $3, $4, $5, $6)",
+                            [student.id, id, question.id, generatedAnswer, null, null]
+                        );
+                    } else {
+                        const subId = generateId();
+                        await execute(
+                            "INSERT INTO submissions(id, student_id, assignment_id, question_id, answer_text, marks_awarded, feedback) VALUES(?, ?, ?, ?, ?, ?, ?)",
+                            [subId, student.id, id, question.id, generatedAnswer, null, null]
+                        );
+                    }
+                    insertedCount++;
+                }
+            }
+        }
+
+        res.json({ message: `Successfully populated ${insertedCount} student submissions across all questions!`, insertedCount });
+    } catch (error) {
+        console.error("Error seeding sample submissions:", error);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 });
 
