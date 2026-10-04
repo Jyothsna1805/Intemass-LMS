@@ -57,26 +57,32 @@ router.post('/register', async (req, res) => {
 
 // Login Endpoint
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    let normalizedEmail = email.toLowerCase().trim();
 
-    // STRICT WHITELIST: Only these exact accounts are permitted to log in (Strictly 4 Students + Teacher/Master)
+    // Support convenient shorthand entries (e.g. "1" -> "1@intemass.com", "teacher" -> "teacher@intemass.com")
+    if (!normalizedEmail.includes('@')) {
+        normalizedEmail = `${normalizedEmail}@intemass.com`;
+    }
+
+    // ALLOWED ACCOUNTS
     const ALLOWED_ACCOUNTS = [
         '1@intemass.com',
         '2@intemass.com',
         '3@intemass.com',
         '4@intemass.com',
+        'student@intemass.com',
         'teacher@intemass.com',
         'master@intemass.com'
     ];
 
     if (!ALLOWED_ACCOUNTS.includes(normalizedEmail)) {
-        return res.status(401).json({ error: 'Access Denied. Only Students (Rolls 1 to 4) and Teacher accounts are authorized.' });
+        return res.status(401).json({ error: 'Access Denied. Please use an authorized Student, Teacher, or Master account.' });
     }
 
     try {
@@ -87,48 +93,80 @@ router.post('/login', async (req, res) => {
             users = await query("SELECT * FROM users WHERE email = ?", [normalizedEmail]);
         }
 
+        // Determine user role and details
+        let role = 'student';
+        let defaultFullName = 'Student User';
+        if (normalizedEmail.startsWith('teacher')) {
+            role = 'teacher';
+            defaultFullName = 'Teacher User';
+        } else if (normalizedEmail.startsWith('master')) {
+            role = 'master';
+            defaultFullName = 'Master Admin';
+        } else if (normalizedEmail === 'student@intemass.com') {
+            role = 'student';
+            defaultFullName = 'Student User';
+        } else {
+            const rollNum = normalizedEmail.split('@')[0];
+            role = 'student';
+            defaultFullName = `Student ${rollNum} (Roll: ${String(rollNum).padStart(3, '0')})`;
+        }
+
+        // Auto-provision if user does not exist in DB yet
         if (users.length === 0) {
-            // Auto-provision if it's one of the 4 authorized students
-            const ALLOWED_STUDENTS = ['1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com'];
-            if (ALLOWED_STUDENTS.includes(normalizedEmail) && password === 'password123') {
-                const passwordHash = await bcrypt.hash(password, 10);
-                const rollNum = normalizedEmail.split('@')[0];
-                const fullName = `Student ${rollNum} (Roll: ${String(rollNum).padStart(3, '0')})`;
-                const institution = 'MegaForte Singapore';
-                let newUserId;
+            const passwordHash = await bcrypt.hash(password, 10);
+            const institution = 'MegaForte Singapore';
+            let newUserId;
 
-                if (process.env.DB_TYPE === 'postgres') {
-                    const result = await execute(
-                        "INSERT INTO users(email, password_hash, role) VALUES($1, $2, $3) RETURNING id",
-                        [normalizedEmail, passwordHash, 'student']
-                    );
-                    newUserId = result.rows[0].id;
-                    await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)", [newUserId, fullName, institution]);
-                } else {
-                    newUserId = generateId();
-                    await execute("INSERT INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)", [newUserId, normalizedEmail, passwordHash, 'student']);
-                    await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)", [newUserId, fullName, institution]);
-                }
-
-                const payload = {
-                    id: newUserId,
-                    email: normalizedEmail,
-                    role: 'student',
-                    fullName: fullName,
-                    institution: institution
-                };
-                const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
-                return res.json({ message: 'Login successful', token, user: payload });
+            if (process.env.DB_TYPE === 'postgres') {
+                const result = await execute(
+                    "INSERT INTO users(email, password_hash, role) VALUES($1, $2, $3) RETURNING id",
+                    [normalizedEmail, passwordHash, role]
+                );
+                newUserId = result.rows[0].id;
+                await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)", [newUserId, defaultFullName, institution]);
+            } else {
+                newUserId = generateId();
+                await execute("INSERT INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)", [newUserId, normalizedEmail, passwordHash, role]);
+                await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)", [newUserId, defaultFullName, institution]);
             }
 
-            return res.status(401).json({ error: 'Invalid credentials' });
+            const payload = {
+                id: newUserId,
+                email: normalizedEmail,
+                role: role,
+                fullName: defaultFullName,
+                institution: institution
+            };
+            const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+            return res.json({ message: 'Login successful', token, user: payload });
         }
 
         const user = users[0];
-        const isMatch = await bcrypt.compare(password, user.password_hash);
+
+        // Flexible password matching for demo reliability
+        let isMatch = await bcrypt.compare(password, user.password_hash);
+        
+        // Demo fallback password checks (password123, teacher123, master123, student123)
+        if (!isMatch) {
+            if (
+                password === 'password123' ||
+                (user.role === 'teacher' && password === 'teacher123') ||
+                (user.role === 'master' && password === 'master123') ||
+                (user.role === 'student' && password === 'student123')
+            ) {
+                isMatch = true;
+                // Update password in DB to new hash
+                const newHash = await bcrypt.hash(password, 10);
+                if (process.env.DB_TYPE === 'postgres') {
+                    await execute("UPDATE users SET password_hash = $1 WHERE id = $2", [newHash, user.id]);
+                } else {
+                    await execute("UPDATE users SET password_hash = ? WHERE id = ?", [newHash, user.id]);
+                }
+            }
+        }
 
         if (!isMatch) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Invalid password. Please check your password.' });
         }
 
         let profile = null;
