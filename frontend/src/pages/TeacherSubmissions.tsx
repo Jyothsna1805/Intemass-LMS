@@ -65,11 +65,27 @@ export default function TeacherSubmissions() {
                     {/* Question-Wise Evaluation Launch CTA Button */}
                     <button
                         onClick={() => navigate(`/teacher/assignments/${id}/question-wise`)}
-                        className="bg-primary-900 hover:bg-primary-800 text-white px-5 py-2.5 rounded shadow text-xs font-black uppercase tracking-wider flex items-center gap-2 transition ring-2 ring-primary-500/20"
+                        style={{
+                            backgroundColor: '#4338ca',
+                            color: '#ffffff',
+                            fontWeight: 900,
+                            padding: '10px 20px',
+                            borderRadius: '6px',
+                            border: '1px solid #6366f1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            fontSize: '12px'
+                        }}
+                        className="hover:opacity-95 transition-all"
                     >
-                        <Layers size={16} className="text-primary-300" />
-                        <span>Launch Question-Wise Batch Evaluation</span>
-                        <Sparkles size={14} className="text-amber-400 animate-pulse" />
+                        <Layers size={16} style={{ color: '#a5b4fc' }} />
+                        <span style={{ color: '#ffffff', fontWeight: 900 }}>Launch Question-Wise Batch Evaluation</span>
+                        <Sparkles size={14} style={{ color: '#facc15' }} className="animate-pulse" />
                     </button>
                 </div>
 
@@ -77,7 +93,7 @@ export default function TeacherSubmissions() {
                 <div className="bg-gradient-to-r from-primary-900 to-indigo-900 text-white p-5 rounded-lg shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="bg-green-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded">NEW FEATURE</span>
+                            <span style={{ backgroundColor: '#22c55e', color: '#ffffff' }} className="text-[10px] font-black uppercase px-2 py-0.5 rounded">NEW FEATURE</span>
                             <h2 className="text-sm font-extrabold uppercase tracking-wide">Horizontal Question-Wise Marking Mode</h2>
                         </div>
                         <p className="text-xs text-primary-100 max-w-2xl">
@@ -86,10 +102,27 @@ export default function TeacherSubmissions() {
                     </div>
                     <button
                         onClick={() => navigate(`/teacher/assignments/${id}/question-wise`)}
-                        className="bg-green-500 hover:bg-green-600 text-white font-black text-xs uppercase tracking-widest px-5 py-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2 flex-shrink-0 border-2 border-green-400"
+                        style={{
+                            backgroundColor: '#16a34a',
+                            color: '#ffffff',
+                            fontWeight: 900,
+                            padding: '12px 24px',
+                            borderRadius: '8px',
+                            border: '2px solid #86efac',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em',
+                            fontSize: '12px',
+                            flexShrink: 0
+                        }}
+                        className="hover:opacity-95 transition-all"
                     >
-                        <span>Start Batch Grading</span>
-                        <span className="text-base font-bold">&rarr;</span>
+                        <span style={{ color: '#ffffff', fontWeight: 900 }}>Start Batch Grading</span>
+                        <span style={{ color: '#ffffff', fontSize: '16px', fontWeight: 900 }}>&rarr;</span>
                     </button>
                 </div>
 
