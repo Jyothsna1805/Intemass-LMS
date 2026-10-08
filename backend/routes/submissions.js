@@ -256,75 +256,14 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
                 expectedAnswer: stdAnsClean
             });
         } else if (stdAnsClean && studentTextClean) {
-            // Force fallback to local math keyword logic to perfectly match frontend
-            let splitRegex = /\n+/g;
-                if (/\b\d+\.\s/.test(stdAnsClean)) {
-                    splitRegex = /(?=\b\d+\.\s)/g;
-                } else if (/\(\d+\s*marks?\)/i.test(stdAnsClean)) {
-                    splitRegex = /(?<=\(\d+\s*marks?\))\s*/ig;
-                }
-                const stdParagraphs = stdAnsClean.split(splitRegex)
-                    .map(p => p.trim())
-                    .filter(p => p.length > 0 && !p.toLowerCase().includes('here is the standard answer') && !p.toLowerCase().includes('certainly!'));
-                let matchCount = 0;
-                if (stdParagraphs.length > 0) {
-                    const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'as', 'into', 'through', 'and', 'or', 'but', 'if', 'then', 'that', 'this', 'it', 'its', 'from', 'here', 'your', 'question', 'requested', 'structured', 'major', 'points']);
-                    const tokenise = (s) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
-                    const studentTokensSet = new Set(tokenise(studentTextClean));
-                    
-                    for (const para of stdParagraphs) {
-                        const paraTokens = tokenise(para);
-                        const uniqueParaTokens = new Set(paraTokens);
-                        let matchedUnique = 0;
-                        for (const t of uniqueParaTokens) {
-                            if (studentTokensSet.has(t)) matchedUnique++;
-                        }
-                        let baseMatch = uniqueParaTokens.size > 0 ? (matchedUnique / uniqueParaTokens.size) : 0;
-                        const cleanParaString = para.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        const cleanStudentString = studentTextClean.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        const heading = cleanParaString.substring(0, 35);
-                        if (heading.length > 10 && cleanStudentString.includes(heading)) {
-                            baseMatch += 0.30;
-                        }
-
-                        if (uniqueParaTokens.size > 0 && baseMatch >= 0.65) matchCount++;
-                    }
-                    marksAwarded = Math.round((matchCount / stdParagraphs.length) * qMaxMarks);
-                    var advancedFeedback = JSON.stringify({ debug: "LOCAL_MATH_LOGIC", stdAnsClean, studentTextClean });
-
-                    const stdTokensSet = new Set(tokenise(stdAnsClean));
-                    if (stdTokensSet.size <= 3 && marksAwarded > 0) {
-                        let questionTextStr = "";
-                        if (process.env.DB_TYPE === 'postgres') {
-                            const qRes = await execute("SELECT question_text FROM questions WHERE id = $1", [questionId]);
-                            if (qRes.rows.length > 0) questionTextStr = qRes.rows[0].question_text || "";
-                        } else {
-                            const qRes = await execute("SELECT question_text FROM questions WHERE id = ?", [questionId]);
-                            if (qRes.length > 0) questionTextStr = qRes[0].question_text || "";
-                        }
-                        const questionTokensSet = new Set(tokenise(safeStripHtml(questionTextStr)));
-                        let guessingTokensCount = 0;
-                        for (const t of studentTokensSet) {
-                            if (!stdTokensSet.has(t) && !questionTokensSet.has(t)) guessingTokensCount++;
-                        }
-                        if (guessingTokensCount > 0) {
-                            marksAwarded = Math.round(marksAwarded * (stdTokensSet.size / (stdTokensSet.size + guessingTokensCount)));
-                        }
-                    }
-                } else {
-                    marksAwarded = 0;
-                }
-                var advancedFeedback = JSON.stringify({
-                    debug: "MATH_LOGIC",
-                    qMaxMarks,
-                    stdAnsClean,
-                    studentTextClean,
-                    matchCount: matchCount || 0,
-                    stdParagraphsLength: stdParagraphs.length
-                });
+            // Use Antigravity Advanced Mathematical & Technical Sentence Marker Engine
+            const mathMarker = require('../utils/mathMarker');
+            const evalResult = mathMarker.gradeAnswer(studentTextClean, stdAnsClean, qMaxMarks, { questionId });
+            marksAwarded = evalResult.marksAwarded;
+            var advancedFeedback = evalResult.feedback || 'Evaluated via Math Marker Engine';
         } else {
             marksAwarded = 0;
-            var advancedFeedback = JSON.stringify({ debug: "SKIPPED_IF_BLOCK", stdAnsClean, studentTextClean });
+            var advancedFeedback = 'No answer text submitted.';
         }
         // ----------------------------------------------------------------------
 

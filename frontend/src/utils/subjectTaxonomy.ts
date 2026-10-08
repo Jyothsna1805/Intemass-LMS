@@ -6,6 +6,41 @@ export interface SubjectNode {
 
 export const PRESET_TAXONOMY: SubjectNode[] = [
     {
+        id: 'physics',
+        name: 'Physics',
+        subCategories: [
+            'Quantum Mechanics',
+            'Crystallography',
+            'Optics',
+            'Electrodynamics',
+            'Lasers',
+            'Dielectrics & Polarizability'
+        ]
+    },
+    {
+        id: 'basic_electronics',
+        name: 'Basic Electronics',
+        subCategories: [
+            'Semiconductor Devices',
+            'Circuit Theory',
+            'Digital Logic',
+            'Analog Electronics',
+            'Transformers & Machines'
+        ]
+    },
+    {
+        id: 'basic_programming',
+        name: 'Basic Programming',
+        subCategories: [
+            'MATLAB Linear Algebra',
+            'MATLAB Basics',
+            'MATLAB Graphics',
+            'MATLAB Control Flow',
+            'MATLAB Functions',
+            'MATLAB Algorithms'
+        ]
+    },
+    {
         id: 'economics',
         name: 'Economics',
         subCategories: [

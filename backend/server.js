@@ -71,6 +71,12 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
     try {
         await initDb();
+        try {
+            const { seedBitCurriculum } = require('./seed_bit_questions');
+            await seedBitCurriculum();
+        } catch (seedErr) {
+            console.error('Non-critical BIT seeding warning:', seedErr);
+        }
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
         });
