@@ -86,9 +86,10 @@ export default function TeacherSubmissions() {
                     </div>
                     <button
                         onClick={() => navigate(`/teacher/assignments/${id}/question-wise`)}
-                        className="bg-white text-primary-950 hover:bg-gray-100 font-extrabold text-xs uppercase px-4 py-2 rounded shadow transition flex-shrink-0"
+                        className="bg-green-500 hover:bg-green-600 text-white font-black text-xs uppercase tracking-widest px-5 py-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2 flex-shrink-0 border-2 border-green-400"
                     >
-                        Start Batch Grading &rarr;
+                        <span>Start Batch Grading</span>
+                        <span className="text-base font-bold">&rarr;</span>
                     </button>
                 </div>
 
