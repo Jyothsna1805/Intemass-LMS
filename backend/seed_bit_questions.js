@@ -433,17 +433,19 @@ end`
     }
 ];
 
-async function seedBitCurriculum() {
+async function seedBitCurriculum(passedTeacherId) {
     console.log('🚀 Seeding Bhilai Institute of Technology (BIT 1 Nov 2026) Question Bank...');
 
     try {
-        let teacherId;
-        if (process.env.DB_TYPE === 'postgres') {
-            const tRes = await query("SELECT id FROM users WHERE role = 'teacher' LIMIT 1");
-            teacherId = tRes.length > 0 ? tRes[0].id : 'f24a9b1c-b241-495c-8d7a-215ef9d1b8ef';
-        } else {
-            const tRes = await query("SELECT id FROM users WHERE role = 'teacher' LIMIT 1");
-            teacherId = tRes.length > 0 ? tRes[0].id : generateId();
+        let teacherId = passedTeacherId;
+        if (!teacherId) {
+            if (process.env.DB_TYPE === 'postgres') {
+                const tRes = await query("SELECT id FROM users WHERE role = 'teacher' LIMIT 1");
+                teacherId = tRes.length > 0 ? tRes[0].id : 'f24a9b1c-b241-495c-8d7a-215ef9d1b8ef';
+            } else {
+                const tRes = await query("SELECT id FROM users WHERE role = 'teacher' LIMIT 1");
+                teacherId = tRes.length > 0 ? tRes[0].id : generateId();
+            }
         }
 
         const insertedQuestionIdsBySubject = {

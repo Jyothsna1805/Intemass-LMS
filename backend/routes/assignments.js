@@ -9,20 +9,19 @@ const generateId = () => crypto.randomUUID();
 // Get assignments
 router.get('/', authenticate, async (req, res) => {
     try {
+        // Auto-seed BIT 1 Nov 2026 course modules if not already present
+        try {
+            const { seedBitCurriculum } = require('../seed_bit_questions');
+            await seedBitCurriculum(req.user.id);
+        } catch (seedErr) {
+            console.error("Non-critical BIT auto-seed note:", seedErr.message);
+        }
+
         let assignments;
-        if (req.user.role === 'teacher') {
-            if (process.env.DB_TYPE === 'postgres') {
-                assignments = await query("SELECT * FROM assignments WHERE teacher_id = $1 ORDER BY created_at DESC", [req.user.id]);
-            } else {
-                assignments = await query("SELECT * FROM assignments WHERE teacher_id = ? ORDER BY created_at DESC", [req.user.id]);
-            }
-        } else if (req.user.role === 'student' || req.user.role === 'master') {
-            // Students see all assignments
-            if (process.env.DB_TYPE === 'postgres') {
-                assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
-            } else {
-                assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
-            }
+        if (process.env.DB_TYPE === 'postgres') {
+            assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
+        } else {
+            assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
         }
         res.json(assignments || []);
     } catch (error) {
