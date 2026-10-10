@@ -172,14 +172,29 @@ export default function QuestionWiseEvaluation() {
             const res = await api.get(`/assignments/${id}/question-wise`);
             const data = res.data;
             setAssignment(data.assignment);
-            setQuestions(data.questions || []);
+
+            const extractQNum = (text: string) => {
+                const match = (text || '').match(/^Q\s*(\d+)/i) || (text || '').match(/^Question\s*(\d+)/i) || (text || '').match(/^(\d+)\./i);
+                return match ? parseInt(match[1], 10) : 999;
+            };
+
+            const sortedQuestions: QuestionData[] = (data.questions || []).sort((a: QuestionData, b: QuestionData) => 
+                extractQNum(a.question_text) - extractQNum(b.question_text)
+            );
+
+            sortedQuestions.forEach((q: QuestionData, idx: number) => {
+                const parsed = extractQNum(q.question_text);
+                q.question_number = parsed !== 999 ? parsed : idx + 1;
+            });
+
+            setQuestions(sortedQuestions);
             setOverallStats(data.stats);
 
             // Populate form state
             const initialMarks: { [k: string]: number | '' } = {};
             const initialFeedback: { [k: string]: string } = {};
 
-            (data.questions || []).forEach((q: QuestionData) => {
+            sortedQuestions.forEach((q: QuestionData) => {
                 q.student_answers.forEach((ans: StudentAnswer) => {
                     initialMarks[ans.id] = ans.marks_awarded !== null ? ans.marks_awarded : '';
                     initialFeedback[ans.id] = sanitizeFeedback(ans.feedback);
@@ -495,12 +510,12 @@ export default function QuestionWiseEvaluation() {
                                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
                                         isCurrent ? 'bg-white text-primary-900' : 'bg-gray-100 text-gray-700'
                                     }`}>
-                                        {idx + 1}
+                                        {q.question_number}
                                     </span>
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <span className={`text-xs font-extrabold uppercase tracking-wider ${isCurrent ? 'text-white' : 'text-gray-900'}`}>
-                                                Question {idx + 1}
+                                                Question {q.question_number}
                                             </span>
                                             <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold uppercase ${
                                                 isCurrent ? 'bg-primary-800 text-primary-200' : 'bg-gray-100 text-gray-600'

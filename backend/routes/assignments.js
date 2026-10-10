@@ -117,7 +117,6 @@ router.get('/:id', authenticate, async (req, res) => {
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
                 WHERE aq.assignment_id = $1 AND (q.subject = $2 OR $2 IS NULL)
-                ORDER BY q.question_text ASC
             `, [id, assignment.subject]);
         } else {
             questionRows = await query(`
@@ -125,9 +124,15 @@ router.get('/:id', authenticate, async (req, res) => {
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
                 WHERE aq.assignment_id = ? AND (q.subject = ? OR ? IS NULL)
-                ORDER BY q.question_text ASC
             `, [id, assignment.subject, assignment.subject]);
         }
+
+        // Natural sort by numeric question number (Q1, Q2, Q3... Q10, Q11)
+        const extractQNum = (text) => {
+            const match = (text || '').match(/^Q\s*(\d+)/i) || (text || '').match(/^Question\s*(\d+)/i) || (text || '').match(/^(\d+)\./i);
+            return match ? parseInt(match[1], 10) : 999;
+        };
+        questionRows.sort((a, b) => extractQNum(a.question_text) - extractQNum(b.question_text));
 
         res.json({ ...assignment, questions: questionRows });
 
@@ -207,7 +212,7 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
             }
         }
 
-        // Fetch questions for this assignment in natural order
+        // Fetch questions for this assignment
         let questionRows;
         if (process.env.DB_TYPE === 'postgres') {
             questionRows = await query(`
@@ -217,7 +222,6 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
                 WHERE aq.assignment_id = $1 AND (q.subject = $2 OR $2 IS NULL)
-                ORDER BY q.question_text ASC
             `, [id, assignment.subject]);
         } else {
             questionRows = await query(`
@@ -227,9 +231,15 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
                 WHERE aq.assignment_id = ? AND (q.subject = ? OR ? IS NULL)
-                ORDER BY q.question_text ASC
             `, [id, assignment.subject, assignment.subject]);
         }
+
+        // Natural sort by numeric question number (Q1, Q2, Q3... Q10, Q11)
+        const extractQNum = (text) => {
+            const match = (text || '').match(/^Q\s*(\d+)/i) || (text || '').match(/^Question\s*(\d+)/i) || (text || '').match(/^(\d+)\./i);
+            return match ? parseInt(match[1], 10) : 999;
+        };
+        questionRows.sort((a, b) => extractQNum(a.question_text) - extractQNum(b.question_text));
 
         // Fetch strictly the 4 authorized student accounts (Roll 1 to 4)
         let allStudents;
