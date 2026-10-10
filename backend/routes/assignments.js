@@ -89,6 +89,26 @@ router.get('/:id', authenticate, async (req, res) => {
 
         const assignment = assignmentRows[0];
 
+        // Auto-link all available subject questions if missing
+        if (assignment.subject) {
+            const subjectQuestions = await query(
+                "SELECT id FROM questions WHERE subject = $1",
+                [assignment.subject]
+            );
+            for (const sq of subjectQuestions) {
+                const linkExisting = await query(
+                    "SELECT question_id FROM assignment_questions WHERE assignment_id = $1 AND question_id = $2",
+                    [id, sq.id]
+                );
+                if (linkExisting.length === 0) {
+                    await execute(
+                        "INSERT INTO assignment_questions (assignment_id, question_id, max_points) VALUES ($1, $2, 100)",
+                        [id, sq.id]
+                    );
+                }
+            }
+        }
+
         // Fetch questions
         let questionRows;
         if (process.env.DB_TYPE === 'postgres') {
@@ -96,15 +116,17 @@ router.get('/:id', authenticate, async (req, res) => {
                 SELECT q.id, q.question_text, q.type, q.subject, q.sub_category, aq.max_points 
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
-                WHERE aq.assignment_id = $1
-            `, [id]);
+                WHERE aq.assignment_id = $1 AND (q.subject = $2 OR $2 IS NULL)
+                ORDER BY q.question_text ASC
+            `, [id, assignment.subject]);
         } else {
             questionRows = await query(`
                 SELECT q.id, q.question_text, q.type, q.subject, q.sub_category, aq.max_points 
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
-                WHERE aq.assignment_id = ?
-            `, [id]);
+                WHERE aq.assignment_id = ? AND (q.subject = ? OR ? IS NULL)
+                ORDER BY q.question_text ASC
+            `, [id, assignment.subject, assignment.subject]);
         }
 
         res.json({ ...assignment, questions: questionRows });
@@ -165,7 +187,27 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
 
         const assignment = assignmentRows[0];
 
-        // Fetch questions for this assignment
+        // Auto-link all available subject questions if missing
+        if (assignment.subject) {
+            const subjectQuestions = await query(
+                "SELECT id FROM questions WHERE subject = $1",
+                [assignment.subject]
+            );
+            for (const sq of subjectQuestions) {
+                const linkExisting = await query(
+                    "SELECT question_id FROM assignment_questions WHERE assignment_id = $1 AND question_id = $2",
+                    [id, sq.id]
+                );
+                if (linkExisting.length === 0) {
+                    await execute(
+                        "INSERT INTO assignment_questions (assignment_id, question_id, max_points) VALUES ($1, $2, 100)",
+                        [id, sq.id]
+                    );
+                }
+            }
+        }
+
+        // Fetch questions for this assignment in natural order
         let questionRows;
         if (process.env.DB_TYPE === 'postgres') {
             questionRows = await query(`
@@ -174,8 +216,9 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
                        q.mcq_options_json, q.blank_answers_json
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
-                WHERE aq.assignment_id = $1
-            `, [id]);
+                WHERE aq.assignment_id = $1 AND (q.subject = $2 OR $2 IS NULL)
+                ORDER BY q.question_text ASC
+            `, [id, assignment.subject]);
         } else {
             questionRows = await query(`
                 SELECT q.id, q.question_text, q.type, q.subject, q.sub_category, q.standard_answer, 
@@ -183,8 +226,9 @@ router.get('/:id/question-wise', authenticate, authorize(['teacher', 'master']),
                        q.mcq_options_json, q.blank_answers_json
                 FROM questions q 
                 JOIN assignment_questions aq ON q.id = aq.question_id 
-                WHERE aq.assignment_id = ?
-            `, [id]);
+                WHERE aq.assignment_id = ? AND (q.subject = ? OR ? IS NULL)
+                ORDER BY q.question_text ASC
+            `, [id, assignment.subject, assignment.subject]);
         }
 
         // Fetch strictly the 4 authorized student accounts (Roll 1 to 4)

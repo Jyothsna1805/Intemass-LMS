@@ -778,39 +778,69 @@ async function seedBitCurriculum(passedTeacherId) {
 
         console.log(`✅ Processed all ${bitQuestionsData.length} BIT questions across all 3 subjects.`);
 
-        // Seed 3 Assignments (one per subject) with all 11 questions each
+        // Ensure all assignments (both new and existing variations like "BIT Nov 2026 - ...") have all 11 questions linked
         const subjects = [
-            { name: 'Basic Electronics', title: 'BIT - Basic Electrical & Electronics Engineering (ECEG-1013)' },
-            { name: 'Basic Programming', title: 'BIT - Programming for Engineers / MATLAB (MECH 2078)' },
-            { name: 'Physics', title: 'BIT - Engineering Physics (PHYS 1038)' }
+            { name: 'Basic Electronics', title: 'BIT Nov 2026 - Basic Electrical & Electronics Engineering (ECEG-1013)' },
+            { name: 'Basic Programming', title: 'BIT Nov 2026 - Programming for Engineers / MATLAB (MECH 2078)' },
+            { name: 'Physics', title: 'BIT Nov 2026 - Engineering Physics (PHYS 1038)' }
         ];
+
+        // Clean up legacy questions for BIT subjects that are not in the current official 11-question set
+        for (const sub of subjects) {
+            const currentOfficialTexts = bitQuestionsData.filter(q => q.subject === sub.name).map(q => q.questionText);
+            const allDbQuestions = await query("SELECT id, question_text FROM questions WHERE subject = $1", [sub.name]);
+            for (const dbQ of allDbQuestions) {
+                if (!currentOfficialTexts.includes(dbQ.question_text)) {
+                    await execute("DELETE FROM assignment_questions WHERE question_id = $1", [dbQ.id]);
+                    await execute("DELETE FROM submissions WHERE question_id = $1", [dbQ.id]);
+                    await execute("DELETE FROM questions WHERE id = $1", [dbQ.id]);
+                }
+            }
+        }
 
         for (const sub of subjects) {
             const subQuestions = insertedQuestionIds.filter(q => q.subject === sub.name);
-            const assignExisting = await query("SELECT id FROM assignments WHERE title = $1", [sub.title]);
-            let assignId;
-            if (assignExisting.length === 0) {
-                assignId = generateId();
+            
+            // Find or create assignment for this subject
+            let targetAssignments = await query(
+                "SELECT id FROM assignments WHERE subject = $1",
+                [sub.name]
+            );
+
+            if (targetAssignments.length === 0) {
+                const newAssignId = generateId();
                 await execute(
                     `INSERT INTO assignments (id, title, instructions, subject, teacher_id, created_at)
                      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
-                    [assignId, sub.title, `Official BIT End-Semester Examination with full 11 questions (Sections A, B, C).`, sub.name, teacherId]
+                    [newAssignId, sub.title, `Official BIT End-Semester Examination with full 11 questions (Sections A, B, C).`, sub.name, teacherId]
                 );
                 console.log(`✅ Created Assignment: ${sub.title}`);
-            } else {
-                assignId = assignExisting[0].id;
+                targetAssignments = [{ id: newAssignId }];
             }
 
-            // Associate all questions to the assignment
-            for (let idx = 0; idx < subQuestions.length; idx++) {
-                const q = subQuestions[idx];
-                const linkExisting = await query("SELECT question_id FROM assignment_questions WHERE assignment_id = $1 AND question_id = $2", [assignId, q.id]);
-                if (linkExisting.length === 0) {
-                    await execute(
-                        `INSERT INTO assignment_questions (assignment_id, question_id, max_points)
-                         VALUES ($1, $2, $3)`,
-                        [assignId, q.id, 100]
+            for (const assign of targetAssignments) {
+                // Remove any question links belonging to other subjects
+                await execute(
+                    `DELETE FROM assignment_questions 
+                     WHERE assignment_id = $1 
+                     AND question_id IN (SELECT id FROM questions WHERE subject != $2)`,
+                    [assign.id, sub.name]
+                );
+
+                // Link all 11 questions of this subject
+                for (let idx = 0; idx < subQuestions.length; idx++) {
+                    const q = subQuestions[idx];
+                    const linkExisting = await query(
+                        "SELECT question_id FROM assignment_questions WHERE assignment_id = $1 AND question_id = $2",
+                        [assign.id, q.id]
                     );
+                    if (linkExisting.length === 0) {
+                        await execute(
+                            `INSERT INTO assignment_questions (assignment_id, question_id, max_points)
+                             VALUES ($1, $2, 100)`,
+                            [assign.id, q.id, 100]
+                        );
+                    }
                 }
             }
         }
