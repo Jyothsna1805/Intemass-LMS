@@ -33,6 +33,7 @@ export default function TeacherDashboard() {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'modules' | 'databank' | 'reassessments'>('modules');
     const [pendingReassessments, setPendingReassessments] = useState<any[]>([]);
 
@@ -84,6 +85,8 @@ export default function TeacherDashboard() {
             setPendingReassessments(pr.data);
         } catch (err) {
             console.error(err);
+        } finally {
+            setInitialLoading(false);
         }
     };
 
@@ -385,7 +388,7 @@ export default function TeacherDashboard() {
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-200">
                                 <div>
                                     <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
-                                        <Lightbulb className="text-primary-700" size={28} /> My Course Modules ({filteredAssignments.length})
+                                        <Lightbulb className="text-primary-700" size={28} /> My Course Modules {initialLoading ? '' : `(${filteredAssignments.length})`}
                                     </h1>
                                     <p className="text-xs text-gray-500 mt-0.5">Organized by Subject Folders & Sub-topics</p>
                                 </div>
@@ -406,49 +409,61 @@ export default function TeacherDashboard() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {filteredAssignments.map((a: Assignment) => (
-                                    <div
-                                        key={a.id}
-                                        onClick={() => navigate(`/teacher/assignments/${a.id}/submissions`)}
-                                        className="border border-gray-200 rounded-lg bg-white p-5 flex flex-col justify-between hover:border-primary-400 hover:shadow-md transition cursor-pointer group relative overflow-hidden"
-                                    >
-                                        <div className="absolute top-0 left-0 right-0 h-1 bg-primary-600 group-hover:bg-primary-700 transition-colors" />
-                                        <div>
-                                            <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                                                <span className="inline-flex items-center gap-1 bg-primary-50 text-primary-800 text-[10px] font-bold px-2 py-0.5 rounded border border-primary-100">
-                                                    <Folder className="w-3 h-3 text-primary-600" />
-                                                    {a.subject || 'General'}
-                                                </span>
-                                                {a.sub_category && a.sub_category !== 'General' && (
-                                                    <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded border border-slate-200">
-                                                        {a.sub_category}
+                            {initialLoading ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {[1, 2, 3].map(n => (
+                                        <div key={n} className="border border-gray-200 rounded-lg p-5 bg-gray-50 animate-pulse space-y-3">
+                                            <div className="h-4 bg-gray-200 rounded w-1/3" />
+                                            <div className="h-6 bg-gray-200 rounded w-4/5" />
+                                            <div className="h-4 bg-gray-200 rounded w-1/2 pt-2" />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {filteredAssignments.map((a: Assignment) => (
+                                        <div
+                                            key={a.id}
+                                            onClick={() => navigate(`/teacher/assignments/${a.id}/submissions`)}
+                                            className="border border-gray-200 rounded-lg bg-white p-5 flex flex-col justify-between hover:border-primary-400 hover:shadow-md transition cursor-pointer group relative overflow-hidden"
+                                        >
+                                            <div className="absolute top-0 left-0 right-0 h-1 bg-primary-600 group-hover:bg-primary-700 transition-colors" />
+                                            <div>
+                                                <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                                                    <span className="inline-flex items-center gap-1 bg-primary-50 text-primary-800 text-[10px] font-bold px-2 py-0.5 rounded border border-primary-100">
+                                                        <Folder className="w-3 h-3 text-primary-600" />
+                                                        {a.subject || 'General'}
                                                     </span>
-                                                )}
+                                                    {a.sub_category && a.sub_category !== 'General' && (
+                                                        <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded border border-slate-200">
+                                                            {a.sub_category}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <BrainCircuit className="text-gray-300 group-hover:text-primary-600 transition-colors w-8 h-8 flex-shrink-0" />
+                                                    <h3 className="text-sm font-bold text-gray-900 group-hover:text-primary-900 leading-snug line-clamp-2">
+                                                        {a.title}
+                                                    </h3>
+                                                </div>
                                             </div>
 
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <BrainCircuit className="text-gray-300 group-hover:text-primary-600 transition-colors w-8 h-8 flex-shrink-0" />
-                                                <h3 className="text-sm font-bold text-gray-900 group-hover:text-primary-900 leading-snug line-clamp-2">
-                                                    {a.title}
-                                                </h3>
+                                            <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
+                                                <span className="text-[11px] text-gray-500 font-medium">Due: {a.due_date || 'No date'}</span>
+                                                <span className="text-[11px] text-primary-700 font-bold group-hover:translate-x-0.5 transition-transform flex items-center">
+                                                    Submissions &rarr;
+                                                </span>
                                             </div>
                                         </div>
-
-                                        <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
-                                            <span className="text-[11px] text-gray-500 font-medium">Due: {a.due_date || 'No date'}</span>
-                                            <span className="text-[11px] text-primary-700 font-bold group-hover:translate-x-0.5 transition-transform flex items-center">
-                                                Submissions &rarr;
-                                            </span>
+                                    ))}
+                                    {filteredAssignments.length === 0 && (
+                                        <div className="col-span-3 p-12 text-center text-gray-400 text-sm font-semibold border border-dashed border-gray-200 rounded-lg">
+                                            No course modules found under this subject folder.
                                         </div>
-                                    </div>
-                                ))}
-                                {filteredAssignments.length === 0 && (
-                                    <div className="col-span-3 p-12 text-center text-gray-400 text-sm font-semibold border border-dashed border-gray-200 rounded-lg">
-                                        No course modules found under this subject folder.
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

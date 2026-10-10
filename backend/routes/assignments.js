@@ -7,22 +7,10 @@ const crypto = require('crypto');
 const generateId = () => crypto.randomUUID();
 
 // Get assignments
+// Get assignments - Instant Query
 router.get('/', authenticate, async (req, res) => {
     try {
-        // Auto-seed BIT 1 Nov 2026 course modules if not already present
-        try {
-            const { seedBitCurriculum } = require('../seed_bit_questions');
-            await seedBitCurriculum(req.user.id);
-        } catch (seedErr) {
-            console.error("Non-critical BIT auto-seed note:", seedErr.message);
-        }
-
-        let assignments;
-        if (process.env.DB_TYPE === 'postgres') {
-            assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
-        } else {
-            assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
-        }
+        const assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
         res.json(assignments || []);
     } catch (error) {
         console.error("Error fetching assignments:", error);
