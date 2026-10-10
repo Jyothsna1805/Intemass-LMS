@@ -35,9 +35,16 @@ export default function StudentAssignment() {
         const fetchAssignment = async () => {
             try {
                 const res = await api.get(`/assignments/${id}`);
-                setAssignment(res.data);
+                const extractQNum = (text: string) => {
+                    const match = (text || '').match(/^Q\s*(\d+)/i) || (text || '').match(/^Question\s*(\d+)/i) || (text || '').match(/^(\d+)\./i);
+                    return match ? parseInt(match[1], 10) : 999;
+                };
+                const sortedQuestions = (res.data.questions || []).sort((a: Question, b: Question) => 
+                    extractQNum(a.question_text) - extractQNum(b.question_text)
+                );
+                setAssignment({ ...res.data, questions: sortedQuestions });
                 const initialAnswers: Record<string, string> = {};
-                res.data.questions?.forEach((q: Question) => {
+                sortedQuestions.forEach((q: Question) => {
                     initialAnswers[q.id] = '';
                 });
                 setAnswers(initialAnswers);
