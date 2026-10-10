@@ -102,7 +102,51 @@ function isQuantityMatch(q1, q2, tolerance = 0.05) {
 }
 
 /**
- * Extracts key equations and assignments from text (e.g. "V = I * R", "P = 10 W", "I = 2.4 mA")
+ * Extracts quadratic roots or solutions from text (e.g. "x = 2, 3", "x = 2 or x = 3", "roots: 2, 3", "x = -1/2, 4")
+ */
+function extractRoots(text) {
+    if (!text) return [];
+    const roots = [];
+    
+    // Pattern for x = num1, num2 or x = num1 and x = num2 or x1 = num1, x2 = num2
+    const rootPattern = /(?:x|roots?|r|y|z)?\s*(?:=|is|are|:)?\s*([+-]?[0-9]+(?:\.[0-9]+)?(?:\/[0-9]+)?)\s*(?:,|and|or|\s+)\s*(?:x\s*=\s*)?([+-]?[0-9]+(?:\.[0-9]+)?(?:\/[0-9]+)?)/gi;
+    let match;
+    while ((match = rootPattern.exec(text)) !== null) {
+        const parseVal = (str) => {
+            if (str.includes('/')) {
+                const [n, d] = str.split('/').map(Number);
+                return d !== 0 ? n / d : NaN;
+            }
+            return parseFloat(str);
+        };
+        const r1 = parseVal(match[1]);
+        const r2 = parseVal(match[2]);
+        if (!isNaN(r1) && !isNaN(r2)) {
+            roots.push(r1, r2);
+        }
+    }
+    return roots;
+}
+
+/**
+ * Checks if student roots match standard roots (order-independent, e.g. {2, 3} matches {3, 2})
+ */
+function areRootsEquivalent(studentRoots, standardRoots, tolerance = 0.05) {
+    if (studentRoots.length === 0 || standardRoots.length === 0) return false;
+    const sortedStu = [...studentRoots].sort((a, b) => a - b);
+    const sortedStd = [...standardRoots].sort((a, b) => a - b);
+    
+    if (sortedStu.length !== sortedStd.length) return false;
+    for (let i = 0; i < sortedStd.length; i++) {
+        const diff = Math.abs(sortedStu[i] - sortedStd[i]);
+        const maxVal = Math.max(Math.abs(sortedStu[i]), Math.abs(sortedStd[i]), 1);
+        if ((diff / maxVal) > tolerance) return false;
+    }
+    return true;
+}
+
+/**
+ * Extracts key equations and assignments from text (e.g. "V = I * R", "P = 10 W", "I = 2.4 mA", "ax^2 + bx + c = 0")
  */
 function extractEquations(text) {
     if (!text) return [];
@@ -211,7 +255,17 @@ function gradeAnswer(studentAnswer, standardAnswer, maxMarks = 5, questionContex
             }
         }
 
-        // C. Check for semantic NLP / formula similarity
+        // C. Check for quadratic / polynomial roots match (e.g. roots {2, 3})
+        const cpRoots = extractRoots(cp);
+        const stuRoots = extractRoots(cleanStudent);
+        if (cpRoots.length > 0 && stuRoots.length > 0) {
+            if (areRootsEquivalent(stuRoots, cpRoots)) {
+                cpScore = Math.max(cpScore, weightPerCheckpoint);
+                matchReason = `Accurately solved and matched all equation roots: [${cpRoots.join(', ')}].`;
+            }
+        }
+
+        // D. Check for semantic NLP / formula similarity
         const sim = stringSimilarity.compareTwoStrings(cleanStudent.toLowerCase(), cp.toLowerCase());
         const normSim = stringSimilarity.compareTwoStrings(normalizedStudent, normalizedCp);
         const bestSim = Math.max(sim, normSim);
@@ -277,5 +331,7 @@ module.exports = {
     normalizeMathExpression,
     extractQuantitiesWithUnits,
     isQuantityMatch,
-    extractEquations
+    extractEquations,
+    extractRoots,
+    areRootsEquivalent
 };
