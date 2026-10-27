@@ -31,12 +31,14 @@ router.post('/generate-students', authenticate, authorize(['master', 'teacher'])
         const passwordHash = await bcrypt.hash(password, 10);
         const createdStudents = [];
 
+        const schoolId = req.user.school_id || 'sch-mf-001';
+        const institution = req.user.school_name || 'MegaForte Academy Singapore';
+
         for (let i = 0; i < count; i++) {
             const num = parseInt(startNumber) + i;
             const rollNumber = String(num).padStart(3, '0');
             const email = prefix ? `${prefix}${num}@intemass.com` : `${num}@intemass.com`;
             const fullName = `Student ${num} (Roll: ${rollNumber})`;
-            const institution = 'MegaForte Singapore';
 
             // Check if user already exists
             const existing = await query("SELECT id FROM users WHERE email = $1", [email]);
@@ -44,26 +46,26 @@ router.post('/generate-students', authenticate, authorize(['master', 'teacher'])
                 let userId;
                 if (process.env.DB_TYPE === 'postgres') {
                     const result = await execute(
-                        "INSERT INTO users(email, password_hash, role) VALUES($1, $2, $3) RETURNING id",
-                        [email, passwordHash, 'student']
+                        "INSERT INTO users(email, password_hash, role, school_id) VALUES($1, $2, $3, $4) RETURNING id",
+                        [email, passwordHash, 'student', schoolId]
                     );
                     userId = result.rows[0].id;
                     await execute(
-                        "INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)",
-                        [userId, fullName, institution]
+                        "INSERT INTO profiles(user_id, full_name, institution, school_id, roll_number) VALUES($1, $2, $3, $4, $5)",
+                        [userId, fullName, institution, schoolId, rollNumber]
                     );
                 } else {
                     userId = generateId();
                     await execute(
-                        "INSERT INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)",
-                        [userId, email, passwordHash, 'student']
+                        "INSERT INTO users(id, email, password_hash, role, school_id) VALUES(?, ?, ?, ?, ?)",
+                        [userId, email, passwordHash, 'student', schoolId]
                     );
                     await execute(
-                        "INSERT INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)",
-                        [userId, fullName, institution]
+                        "INSERT INTO profiles(user_id, full_name, institution, school_id, roll_number) VALUES(?, ?, ?, ?, ?)",
+                        [userId, fullName, institution, schoolId, rollNumber]
                     );
                 }
-                createdStudents.push({ email, fullName, rollNumber });
+                createdStudents.push({ email, fullName, rollNumber, schoolId });
             }
         }
 

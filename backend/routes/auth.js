@@ -83,7 +83,7 @@ router.post('/login', async (req, res) => {
         let defaultFullName = 'Student User';
         if (normalizedEmail.includes('teacher')) {
             role = 'teacher';
-            defaultFullName = 'Teacher User';
+            defaultFullName = normalizedEmail.includes('stj') ? 'Dr. Marcus Vance (St. Jude)' : 'Teacher User';
         } else if (normalizedEmail.includes('master') || normalizedEmail.includes('admin')) {
             role = 'master';
             defaultFullName = 'Master Admin';
@@ -96,31 +96,40 @@ router.post('/login', async (req, res) => {
             defaultFullName = !isNaN(Number(rollNum)) ? `Student ${rollNum} (Roll: ${String(rollNum).padStart(3, '0')})` : `Student (${rollNum})`;
         }
 
+        const isStj = normalizedEmail.includes('stj');
+        const defaultSchoolId = isStj ? 'sch-stj-002' : 'sch-mf-001';
+        const defaultInstitution = isStj ? 'St. Jude STEM Institute' : 'MegaForte Academy Singapore';
+
         // Auto-provision if user does not exist in DB yet
         if (users.length === 0) {
             const passwordHash = await bcrypt.hash(password, 10);
-            const institution = 'MegaForte Singapore';
             let newUserId;
 
             if (process.env.DB_TYPE === 'postgres') {
                 const result = await execute(
-                    "INSERT INTO users(email, password_hash, role) VALUES($1, $2, $3) RETURNING id",
-                    [normalizedEmail, passwordHash, role]
+                    "INSERT INTO users(email, password_hash, role, school_id) VALUES($1, $2, $3, $4) RETURNING id",
+                    [normalizedEmail, passwordHash, role, defaultSchoolId]
                 );
                 newUserId = result.rows[0].id;
-                await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)", [newUserId, defaultFullName, institution]);
+                await execute("INSERT INTO profiles(user_id, full_name, institution, school_id) VALUES($1, $2, $3, $4)", [newUserId, defaultFullName, defaultInstitution, defaultSchoolId]);
             } else {
                 newUserId = generateId();
-                await execute("INSERT INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)", [newUserId, normalizedEmail, passwordHash, role]);
-                await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)", [newUserId, defaultFullName, institution]);
+                await execute("INSERT INTO users(id, email, password_hash, role, school_id) VALUES(?, ?, ?, ?, ?)", [newUserId, normalizedEmail, passwordHash, role, defaultSchoolId]);
+                await execute("INSERT INTO profiles(user_id, full_name, institution, school_id) VALUES(?, ?, ?, ?)", [newUserId, defaultFullName, defaultInstitution, defaultSchoolId]);
             }
+
+            const schoolRows = await query("SELECT id, name, code FROM schools WHERE id = $1", [defaultSchoolId]);
+            const school = schoolRows[0] || { id: defaultSchoolId, name: defaultInstitution, code: isStj ? 'STJ-01' : 'MF-SG' };
 
             const payload = {
                 id: newUserId,
                 email: normalizedEmail,
                 role: role,
                 fullName: defaultFullName,
-                institution: institution
+                institution: defaultInstitution,
+                school_id: school.id,
+                school_name: school.name,
+                school_code: school.code
             };
             const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
             return res.json({ message: 'Login successful', token, user: payload });
@@ -163,19 +172,29 @@ router.post('/login', async (req, res) => {
 
         let profile = null;
         if (process.env.DB_TYPE === 'postgres') {
-            const pRes = await query("SELECT full_name, institution FROM profiles WHERE user_id = $1", [user.id]);
+            const pRes = await query("SELECT full_name, institution, school_id, roll_number, class_name FROM profiles WHERE user_id = $1", [user.id]);
             if (pRes.length > 0) profile = pRes[0];
         } else {
-            const pRes = await query("SELECT full_name, institution FROM profiles WHERE user_id = ?", [user.id]);
+            const pRes = await query("SELECT full_name, institution, school_id, roll_number, class_name FROM profiles WHERE user_id = ?", [user.id]);
             if (pRes.length > 0) profile = pRes[0];
         }
+
+        // Determine user's school
+        const activeSchoolId = user.school_id || (profile && profile.school_id) || defaultSchoolId;
+        const schoolRows = await query("SELECT id, name, code FROM schools WHERE id = $1", [activeSchoolId]);
+        const school = schoolRows[0] || { id: activeSchoolId, name: defaultInstitution, code: isStj ? 'STJ-01' : 'MF-SG' };
 
         const payload = {
             id: user.id,
             email: user.email,
             role: user.role,
             fullName: profile ? profile.full_name : defaultFullName,
-            institution: profile ? profile.institution : 'MegaForte Singapore'
+            institution: profile ? profile.institution : school.name,
+            school_id: school.id,
+            school_name: school.name,
+            school_code: school.code,
+            roll_number: profile ? profile.roll_number : null,
+            class_name: profile ? profile.class_name : null
         };
 
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });

@@ -40,7 +40,7 @@ function App() {
 
                     <Route path="/teacher-dashboard" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherDashboard /></ProtectedRoute>} />
                     <Route path="/mass-upload" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><MassUploadDashboard /></ProtectedRoute>} />
-                    <Route path="/consolidated-reports" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><ConsolidatedReports /></ProtectedRoute>} />
+                    <Route path="/consolidated-reports" element={<ProtectedRoute allowedRoles={['student', 'teacher', 'master']}><ConsolidatedReports /></ProtectedRoute>} />
                     <Route path="/mass-feedback-manager" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><MassFeedbackManager /></ProtectedRoute>} />
                     <Route path="/teacher-feedback" element={<ProtectedRoute allowedRoles={['teacher', 'master']}><TeacherFeedbackPage /></ProtectedRoute>} />
 

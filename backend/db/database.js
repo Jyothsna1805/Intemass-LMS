@@ -148,24 +148,43 @@ const initDb = async () => {
                     dbInstance.run("ALTER TABLE questions ADD COLUMN sub_category TEXT DEFAULT 'General'", () => {});
                     dbInstance.run("ALTER TABLE assignments ADD COLUMN subject TEXT DEFAULT 'General'", () => {});
                     dbInstance.run("ALTER TABLE assignments ADD COLUMN sub_category TEXT DEFAULT 'General'", () => {});
+                    dbInstance.run("ALTER TABLE users ADD COLUMN school_id TEXT REFERENCES schools(id)", () => {});
+                    dbInstance.run("ALTER TABLE profiles ADD COLUMN school_id TEXT REFERENCES schools(id)", () => {});
+                    dbInstance.run("ALTER TABLE profiles ADD COLUMN class_name TEXT", () => {});
+                    dbInstance.run("ALTER TABLE profiles ADD COLUMN roll_number TEXT", () => {});
+                    dbInstance.run("ALTER TABLE assignments ADD COLUMN school_id TEXT REFERENCES schools(id)", () => {});
+                    dbInstance.run("ALTER TABLE submissions ADD COLUMN school_id TEXT REFERENCES schools(id)", () => {});
+
+                    // Seed default schools
+                    dbInstance.run(
+                        "INSERT OR IGNORE INTO schools(id, name, code, address, contact_email) VALUES ('sch-mf-001', 'MegaForte Academy Singapore', 'MF-SG', '10 Collyer Quay, Ocean Financial Centre, Singapore 049315', 'admin@megaforte.sg')",
+                        () => {}
+                    );
+                    dbInstance.run(
+                        "INSERT OR IGNORE INTO schools(id, name, code, address, contact_email) VALUES ('sch-stj-002', 'St. Jude STEM Institute', 'STJ-01', '45 Science Park Rd, The Capricorn, Singapore 117528', 'office@stjude-stem.edu')",
+                        () => {}
+                    );
 
                     // Seed student logins in SQLite
                     try {
                         const bcrypt = require('bcryptjs');
                         const defaultPassword = await bcrypt.hash('password123', 10);
                         const studentsToSeed = [
-                            { id: '11111111-1111-4111-8111-111111111111', email: '1@intemass.com', name: 'Student 1 (Roll: 001)', inst: 'MegaForte Singapore' },
-                            { id: '22222222-2222-4222-8222-222222222222', email: '2@intemass.com', name: 'Student 2 (Roll: 002)', inst: 'MegaForte Singapore' },
-                            { id: '33333333-3333-4333-8333-333333333333', email: '3@intemass.com', name: 'Student 3 (Roll: 003)', inst: 'MegaForte Singapore' },
-                            { id: '44444444-4444-4444-8444-444444444444', email: '4@intemass.com', name: 'Student 4 (Roll: 004)', inst: 'MegaForte Singapore' },
-                            { id: 'df5ee1f9-d43b-45b5-985d-ef6c4d5a02f4', email: 'student@intemass.com', name: 'Student User', inst: 'MegaForte Singapore' }
+                            { id: '11111111-1111-4111-8111-111111111111', email: '1@intemass.com', name: 'Student 1 (Roll: 001)', inst: 'MegaForte Singapore', schoolId: 'sch-mf-001', roll: '001' },
+                            { id: '22222222-2222-4222-8222-222222222222', email: '2@intemass.com', name: 'Student 2 (Roll: 002)', inst: 'MegaForte Singapore', schoolId: 'sch-mf-001', roll: '002' },
+                            { id: '33333333-3333-4333-8333-333333333333', email: '3@intemass.com', name: 'Student 3 (Roll: 003)', inst: 'MegaForte Singapore', schoolId: 'sch-mf-001', roll: '003' },
+                            { id: '44444444-4444-4444-8444-444444444444', email: '4@intemass.com', name: 'Student 4 (Roll: 004)', inst: 'MegaForte Singapore', schoolId: 'sch-mf-001', roll: '004' },
+                            { id: 'df5ee1f9-d43b-45b5-985d-ef6c4d5a02f4', email: 'student@intemass.com', name: 'Student User', inst: 'MegaForte Singapore', schoolId: 'sch-mf-001', roll: '005' },
+                            // St. Jude STEM Students
+                            { id: 'stj-stu-0001', email: 'stj.student1@intemass.com', name: 'Alice Walker', inst: 'St. Jude STEM Institute', schoolId: 'sch-stj-002', roll: 'STJ-001' },
+                            { id: 'stj-stu-0002', email: 'stj.student2@intemass.com', name: 'Bob Miller', inst: 'St. Jude STEM Institute', schoolId: 'sch-stj-002', roll: 'STJ-002' },
+                            { id: 'stj-stu-0003', email: 'stj.student3@intemass.com', name: 'Charlie Evans', inst: 'St. Jude STEM Institute', schoolId: 'sch-stj-002', roll: 'STJ-003' }
                         ];
                         for (const stu of studentsToSeed) {
-                            dbInstance.run('INSERT OR IGNORE INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)', [stu.id, stu.email, defaultPassword, 'student'], () => {
-                                dbInstance.run('INSERT OR IGNORE INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)', [stu.id, stu.name, stu.inst]);
+                            dbInstance.run('INSERT OR IGNORE INTO users(id, email, password_hash, role, school_id) VALUES(?, ?, ?, ?, ?)', [stu.id, stu.email, defaultPassword, 'student', stu.schoolId], () => {
+                                dbInstance.run('INSERT OR IGNORE INTO profiles(user_id, full_name, institution, school_id, roll_number) VALUES(?, ?, ?, ?, ?)', [stu.id, stu.name, stu.inst, stu.schoolId, stu.roll]);
                             });
                         }
-                        dbInstance.run("DELETE FROM users WHERE role = 'student' AND email NOT IN ('1@intemass.com', '2@intemass.com', '3@intemass.com', '4@intemass.com', 'student@intemass.com')");
                     } catch (e) {}
                 });
             }

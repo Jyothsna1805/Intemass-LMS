@@ -6,6 +6,13 @@ interface User {
     id: string;
     email: string;
     role: UserRole;
+    fullName?: string;
+    institution?: string;
+    school_id?: string;
+    school_name?: string;
+    school_code?: string;
+    roll_number?: string;
+    class_name?: string;
 }
 
 interface AuthContextType {

@@ -1,9 +1,28 @@
 -- SQLite Schema
+CREATE TABLE IF NOT EXISTS schools (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    address TEXT,
+    contact_email TEXT,
+    logo_url TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS classes (
+    id TEXT PRIMARY KEY,
+    school_id TEXT REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    academic_year TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role TEXT CHECK (role IN ('student', 'teacher', 'master')),
+    school_id TEXT REFERENCES schools(id) ON DELETE SET NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -11,6 +30,9 @@ CREATE TABLE IF NOT EXISTS profiles (
     user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
     full_name TEXT,
     institution TEXT,
+    school_id TEXT REFERENCES schools(id) ON DELETE SET NULL,
+    class_name TEXT,
+    roll_number TEXT,
     PRIMARY KEY (user_id)
 );
 
@@ -31,6 +53,7 @@ CREATE TABLE IF NOT EXISTS questions (
 CREATE TABLE IF NOT EXISTS assignments (
     id TEXT PRIMARY KEY,
     teacher_id TEXT REFERENCES users(id),
+    school_id TEXT REFERENCES schools(id) ON DELETE CASCADE,
     title TEXT,
     instructions TEXT,
     subject TEXT DEFAULT 'General',
@@ -51,6 +74,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     student_id TEXT REFERENCES users(id),
     assignment_id TEXT REFERENCES assignments(id),
     question_id TEXT REFERENCES questions(id),
+    school_id TEXT REFERENCES schools(id) ON DELETE CASCADE,
     answer_text TEXT,
     file_url TEXT,
     extracted_diagram_url TEXT,
@@ -64,6 +88,21 @@ CREATE TABLE IF NOT EXISTS submissions (
     marked_by TEXT REFERENCES users(id),   
     submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     marked_at DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS school_reports (
+    id TEXT PRIMARY KEY,
+    school_id TEXT NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    report_type TEXT NOT NULL CHECK (report_type IN ('master_school', 'individual_student', 'subject_master', 'class_master')),
+    student_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+    assignment_id TEXT REFERENCES assignments(id) ON DELETE CASCADE,
+    subject TEXT DEFAULT 'All',
+    title TEXT NOT NULL,
+    academic_term TEXT DEFAULT '2026-Term1',
+    summary_data_json TEXT NOT NULL,
+    generated_by TEXT REFERENCES users(id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS saved_essays (

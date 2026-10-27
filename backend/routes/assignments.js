@@ -7,10 +7,24 @@ const crypto = require('crypto');
 const generateId = () => crypto.randomUUID();
 
 // Get assignments
-// Get assignments - Instant Query
+// Get assignments - School-scoped query
 router.get('/', authenticate, async (req, res) => {
     try {
-        const assignments = await query("SELECT * FROM assignments ORDER BY created_at DESC");
+        let sql = "SELECT * FROM assignments";
+        const params = [];
+
+        // Strict multi-tenant isolation: if not master admin, only show assignments for the user's school
+        if (req.user && req.user.role !== 'master') {
+            const userSchoolId = req.user.school_id || 'sch-mf-001';
+            sql += " WHERE school_id = $1 OR school_id IS NULL";
+            params.push(userSchoolId);
+        } else if (req.query.school_id) {
+            sql += " WHERE school_id = $1";
+            params.push(req.query.school_id);
+        }
+
+        sql += " ORDER BY created_at DESC";
+        const assignments = await query(sql, params);
         res.json(assignments || []);
     } catch (error) {
         console.error("Error fetching assignments:", error);
@@ -23,6 +37,7 @@ router.post('/', authenticate, authorize('teacher'), async (req, res) => {
     const { title, instructions, dueDate, questionIds, subject, subCategory } = req.body;
     const aSubject = subject || 'General';
     const aSubCategory = subCategory || 'General';
+    const schoolId = req.user.school_id || 'sch-mf-001';
 
     if (!title || !questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
         return res.status(400).json({ error: 'Title and at least one question are required' });
@@ -32,8 +47,8 @@ router.post('/', authenticate, authorize('teacher'), async (req, res) => {
         let assignmentId;
         if (process.env.DB_TYPE === 'postgres') {
             const result = await execute(
-                "INSERT INTO assignments(teacher_id, title, instructions, due_date, subject, sub_category) VALUES($1, $2, $3, $4, $5, $6) RETURNING id",
-                [req.user.id, title, instructions, dueDate, aSubject, aSubCategory]
+                "INSERT INTO assignments(teacher_id, title, instructions, due_date, subject, sub_category, school_id) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+                [req.user.id, title, instructions, dueDate, aSubject, aSubCategory, schoolId]
             );
             assignmentId = result.rows[0].id;
 
@@ -44,8 +59,8 @@ router.post('/', authenticate, authorize('teacher'), async (req, res) => {
         } else {
             assignmentId = generateId();
             await execute(
-                "INSERT INTO assignments(id, teacher_id, title, instructions, due_date, subject, sub_category) VALUES(?, ?, ?, ?, ?, ?, ?)",
-                [assignmentId, req.user.id, title, instructions, dueDate, aSubject, aSubCategory]
+                "INSERT INTO assignments(id, teacher_id, title, instructions, due_date, subject, sub_category, school_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                [assignmentId, req.user.id, title, instructions, dueDate, aSubject, aSubCategory, schoolId]
             );
 
             for (const qId of questionIds) {

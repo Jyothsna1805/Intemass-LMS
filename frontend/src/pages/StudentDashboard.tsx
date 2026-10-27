@@ -111,20 +111,30 @@ export default function StudentDashboard() {
                             </p>
                         </div>
 
-                        {/* Quick Stats */}
-                        <div className="flex items-center gap-3 bg-slate-900/80 p-3 rounded-xl border border-primary-700/50">
-                            <div className="text-center px-3 border-r border-gray-700">
-                                <div className="text-lg font-black text-emerald-400">{completedCount}</div>
-                                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Completed</div>
+                        {/* Quick Stats & Report Link */}
+                        <div className="flex flex-col sm:flex-row items-center gap-3">
+                            <div className="flex items-center gap-3 bg-slate-900/80 p-3 rounded-xl border border-primary-700/50">
+                                <div className="text-center px-3 border-r border-gray-700">
+                                    <div className="text-lg font-black text-emerald-400">{completedCount}</div>
+                                    <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Completed</div>
+                                </div>
+                                <div className="text-center px-3 border-r border-gray-700">
+                                    <div className="text-lg font-black text-amber-400">{pendingCount}</div>
+                                    <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Pending</div>
+                                </div>
+                                <div className="text-center px-3">
+                                    <div className="text-lg font-black text-primary-300">{assignments.length}</div>
+                                    <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Total Modules</div>
+                                </div>
                             </div>
-                            <div className="text-center px-3 border-r border-gray-700">
-                                <div className="text-lg font-black text-amber-400">{pendingCount}</div>
-                                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Pending</div>
-                            </div>
-                            <div className="text-center px-3">
-                                <div className="text-lg font-black text-primary-300">{assignments.length}</div>
-                                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Total Modules</div>
-                            </div>
+
+                            <button
+                                onClick={() => navigate('/consolidated-reports')}
+                                className="w-full sm:w-auto px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg transition flex items-center justify-center gap-2 border border-indigo-400/30"
+                            >
+                                <Award className="w-4 h-4 text-amber-300" />
+                                <span>My School Report</span>
+                            </button>
                         </div>
                     </div>
                 </div>

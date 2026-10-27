@@ -1,9 +1,28 @@
 -- Postgres Schema
+CREATE TABLE IF NOT EXISTS schools (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(200) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    address TEXT,
+    contact_email VARCHAR(255),
+    logo_url VARCHAR(500),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS classes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    academic_year VARCHAR(50),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) CHECK (role IN ('student', 'teacher', 'master')),
+    school_id UUID REFERENCES schools(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -11,6 +30,9 @@ CREATE TABLE IF NOT EXISTS profiles (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     full_name VARCHAR(100),
     institution VARCHAR(100),
+    school_id UUID REFERENCES schools(id) ON DELETE SET NULL,
+    class_name VARCHAR(100),
+    roll_number VARCHAR(50),
     PRIMARY KEY (user_id)
 );
 
@@ -31,6 +53,7 @@ CREATE TABLE IF NOT EXISTS questions (
 CREATE TABLE IF NOT EXISTS assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID REFERENCES users(id),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     title VARCHAR(200),
     instructions TEXT,
     subject VARCHAR(100) DEFAULT 'General',
@@ -51,6 +74,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     student_id UUID REFERENCES users(id),
     assignment_id UUID REFERENCES assignments(id),
     question_id UUID REFERENCES questions(id),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     answer_text TEXT,
     file_url VARCHAR(500),
     extracted_diagram_url VARCHAR(500),
@@ -64,6 +88,21 @@ CREATE TABLE IF NOT EXISTS submissions (
     marked_by UUID REFERENCES users(id),   
     submitted_at TIMESTAMP DEFAULT NOW(),
     marked_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS school_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    report_type VARCHAR(50) NOT NULL CHECK (report_type IN ('master_school', 'individual_student', 'subject_master', 'class_master')),
+    student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE,
+    subject VARCHAR(100) DEFAULT 'All',
+    title VARCHAR(255) NOT NULL,
+    academic_term VARCHAR(100) DEFAULT '2026-Term1',
+    summary_data_json TEXT NOT NULL,
+    generated_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS saved_essays (

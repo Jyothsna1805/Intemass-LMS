@@ -267,10 +267,12 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         }
         // ----------------------------------------------------------------------
 
+        const schoolId = req.user.school_id || 'sch-mf-001';
+
         if (process.env.DB_TYPE === 'postgres') {
             const result = await execute(
-                "INSERT INTO submissions(student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, feedback, marks_awarded) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
-                [req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, advancedFeedback, marksAwarded]
+                "INSERT INTO submissions(student_id, assignment_id, question_id, school_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, feedback, marks_awarded) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
+                [req.user.id, assignmentId, questionId, schoolId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, advancedFeedback, marksAwarded]
             );
             submissionId = result.rows[0].id;
             if (marksAwarded !== null) {
@@ -279,8 +281,8 @@ router.post('/', authenticate, authorize('student'), upload.single('file'), asyn
         } else {
             submissionId = generateId();
             await execute(
-                "INSERT INTO submissions(id, student_id, assignment_id, question_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, feedback, marks_awarded) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [submissionId, req.user.id, assignmentId, questionId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, advancedFeedback, marksAwarded]
+                "INSERT INTO submissions(id, student_id, assignment_id, question_id, school_id, answer_text, file_url, extracted_diagram_url, ocr_text, topology_json, feedback, marks_awarded) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [submissionId, req.user.id, assignmentId, questionId, schoolId, answerText || null, fileUrl, extractedUrl, ocrText, topologyJson, advancedFeedback, marksAwarded]
             );
             if (marksAwarded !== null) {
                 await execute("UPDATE submissions SET marked_at = CURRENT_TIMESTAMP WHERE id = ?", [submissionId]);
