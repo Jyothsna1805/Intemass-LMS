@@ -544,200 +544,240 @@ end`
     },
 
     // =========================================================================
-    // 3. PHYSICS (PHYS 1038) - 11 QUESTIONS
+    // 3. PHYSICS (PHYS 1038) - 11 QUESTIONS (OFFICIAL STANDARD ANSWER KEY RUBRICS)
     // =========================================================================
     {
         subject: 'Physics',
         subCategory: 'Quantum Mechanics',
         type: 'essay',
         maxMarks: 4,
-        questionText: 'Q1. Electron trapped in a one-dimensional potential box of length 10 nm makes a transition from 3rd excited state to 2nd excited state. Determine the wavelength of the corresponding electromagnetic radiation emitted. (CO3 - 4 Marks)',
-        standardAnswer: `1. Energy Level Equation for 1D Infinite Potential Well:
-E_n = (n^2 * h^2) / (8 * m * L^2)
-2. State Identification:
-- 3rd excited state corresponds to principal quantum number n = 4.
-- 2nd excited state corresponds to principal quantum number n = 3.
-3. Transition Energy Difference Delta E:
-Delta E = E_4 - E_3 = (4^2 - 3^2) * [ h^2 / (8 * m * L^2) ] = 7 * h^2 / (8 * m * L^2)
-4. Value Substitutions:
-h = 6.63e-34 J.s, m = 9.1e-31 kg, L = 10 nm = 10e-9 m = 1e-8 m.
-Delta E = 7 * (6.63e-34)^2 / (8 * 9.1e-31 * 1e-16) = 4.22e-21 Joules (0.0264 eV).
-5. Wavelength Calculation:
-lambda = (h * c) / Delta E = (6.63e-34 * 3e8) / 4.22e-21 = 4.71e-5 meters = 47.1 um (Infrared radiation).`
+        questionText: 'Q1. Electron trapped in a one-dimensional potential box of length 10 nm, makes a transition from 3rd excited state to 2nd excited state, Determine the wavelength of the corresponding electromagnetic radiation emitted (4 Marks, CO3)',
+        standardAnswer: `1. [1] For a particle in a 1-D box, E_n = n²h²/(8mL²). The 3rd excited state is n = 4 and the 2nd excited state is n = 3.
+2. [1] Energy difference: ΔE = (4² − 3²)h²/(8mL²) = 7h²/(8mL²).
+3. [1] Substitution: h²/(8mL²) = (6.6×10⁻³⁴)² / (8 × 9.1×10⁻³¹ × (10×10⁻⁹)²) = 5.98×10⁻²² J, so ΔE = 7 × 5.98×10⁻²² = 4.19×10⁻²¹ J.
+4. [1] λ = hc/ΔE = (6.6×10⁻³⁴ × 3×10⁸)/(4.19×10⁻²¹) ≈ 4.73×10⁻⁵ m ≈ 47.3 μm (infrared region).`
     },
     {
         subject: 'Physics',
         subCategory: 'Quantum Mechanics',
         type: 'essay',
         maxMarks: 4,
-        questionText: 'Q2. State the conditions for a well-behaved quantum mechanical wave function psi(x). (CO1 - 4 Marks)',
-        standardAnswer: `A physically acceptable (well-behaved) wave function psi(x) must satisfy the following fundamental boundary conditions:
-1. Single-valued: psi(x) must possess only one unique value at each spatial coordinate to ensure unique probability density.
-2. Continuous: psi(x) and its first spatial derivative d(psi)/dx must be continuous everywhere across space.
-3. Square-Integrable / Finite: The integral of |psi(x)|^2 dx over all space from -infinity to +infinity must equal 1 (Normalizability condition).
-4. Non-zero: psi(x) must not be identically zero everywhere in the active region.`
+        questionText: 'Q2. State the conditions for a well-behaved quantum mechanical wave function. (4 Marks, CO1)',
+        standardAnswer: `1. [1] ψ must be single-valued: one definite value of ψ at each point in space.
+2. [1] ψ must be finite everywhere, so that it can be normalised and ∫|ψ|²dV = 1 (square-integrable, ψ → 0 as x → ±∞).
+3. [1] ψ must be continuous everywhere, with no sudden jumps.
+4. [1] The first derivative dψ/dx must be continuous (smooth) wherever the potential is finite, so that the Schrödinger equation can be satisfied.`
     },
     {
         subject: 'Physics',
         subCategory: 'Crystallography',
         type: 'essay',
         maxMarks: 4,
-        questionText: 'Q3. Draw the planes (1 2 1) and (2 3 4) on a simple cubic lattice. (CO3 - 4 Marks)',
-        standardAnswer: `1. Determining Axis Intercepts via Miller Indices:
-- Plane (1 2 1): Intercepts on x, y, z axes are (1/1, 1/2, 1/1) -> (1a, 0.5a, 1a).
-- Plane (2 3 4): Intercepts on x, y, z axes are (1/2, 1/3, 1/4) -> (0.5a, 0.333a, 0.25a).
-2. Sketch Description:
-Draw a unit cube of lattice parameter 'a'. Mark the intercept coordinates on the three Cartesian axes originating from the reference origin, and join the points to form the corresponding triangular lattice plane.`
+        questionText: 'Q3. Draw the planes (1 2 1) and (2 3 4) on a simple cubic lattice. (4 Marks, CO3)',
+        standardAnswer: `1. [1] (121): take reciprocals of the Miller indices, 1/1 : 1/2 : 1/1, giving intercepts x = 1a, y = ½a, z = 1a.
+2. [1] Draw the (121) plane on a cubic unit cell with axes x, y, z, joining the three intercept points (1,0,0), (0,½,0) and (0,0,1), correctly labelled.
+3. [1] (234): reciprocals 1/2 : 1/3 : 1/4, giving intercepts x = ½a, y = ⅓a, z = ¼a.
+4. [1] Draw the (234) plane on a second cubic cell, joining (½,0,0), (0,⅓,0) and (0,0,¼), correctly labelled.`
     },
     {
         subject: 'Physics',
         subCategory: 'Optics',
         type: 'essay',
         maxMarks: 4,
-        questionText: 'Q4. Differentiate between Fraunhofer and Fresnel class of diffraction. (CO1 - 4 Marks)',
-        standardAnswer: `1. Source and Screen Distance: In Fresnel diffraction, the light source and screen are at finite distances from the diffracting aperture. In Fraunhofer diffraction, source and screen are effectively at infinite distances.
-2. Incident Wavefront Geometry: Fresnel uses spherical or cylindrical wavefronts; Fraunhofer uses plane wavefronts.
-3. Focusing Optics: Fresnel requires no lenses; Fraunhofer requires convex lenses to collimate and focus parallel rays.
-4. Central Fringe: In Fresnel diffraction, the central point may be bright or dark; in Fraunhofer diffraction, the central maximum is always bright.`
+        questionText: 'Q4. Differentiate between Fraunhoffer’s and Fresnel’s class of diffraction. (4 Marks, CO1)',
+        standardAnswer: `1. [1] Source and screen distance: in Fresnel diffraction the source or screen (or both) are at a finite distance from the obstacle. In Fraunhofer diffraction both are effectively at infinity.
+2. [1] Wavefront: Fresnel uses spherical or cylindrical wavefronts. Fraunhofer uses plane wavefronts (parallel beam).
+3. [1] Experimental set-up: Fresnel needs no lenses. Fraunhofer needs a collimating lens and a focusing lens.
+4. [1] Analysis: Fresnel diffraction is mathematically complex (half-period zones, path difference varies non-linearly). Fraunhofer is simpler (path difference is linear in the angle). An example of each may be given, e.g. a straight edge or circular aperture for Fresnel, and a single slit or grating for Fraunhofer.`
     },
     {
         subject: 'Physics',
         subCategory: 'Vector Calculus & Electrodynamics',
         type: 'essay',
         maxMarks: 4,
-        questionText: 'Q5. Show that the vector F = (6xy + z^3)i + (3x^2 - z)j + (3xz^2 - y)k is irrotational. (CO2 - 4 Marks)',
-        standardAnswer: `A vector field F is irrotational if its curl is identically zero: curl F = del x F = 0.
-Computing curl components:
-- i-component: d/dy(3xz^2 - y) - d/dz(3x^2 - z) = -1 - (-1) = 0
-- j-component: d/dz(6xy + z^3) - d/dx(3xz^2 - y) = 3z^2 - 3z^2 = 0
-- k-component: d/dx(3x^2 - z) - d/dy(6xy + z^3) = 6x - 6x = 0
-Since curl F = 0i + 0j + 0k = 0, the vector field F is strictly irrotational.`
+        questionText: 'Q5. Show that the vector F = (6xy + z³)i + (3x² − z)j + (3xz² − y)k is irrotational. (4 Marks, CO2)',
+        standardAnswer: `1. [1] A vector field is irrotational if ∇ × F = 0. Write curl as the determinant with rows (i, j, k), (∂/∂x, ∂/∂y, ∂/∂z), (Fx, Fy, Fz).
+2. [1] i-component: ∂Fz/∂y − ∂Fy/∂z = (−1) − (−1) = 0.
+3. [1] j-component: ∂Fx/∂z − ∂Fz/∂x = 3z² − 3z² = 0.
+4. [1] k-component: ∂Fy/∂x − ∂Fx/∂y = 6x − 6x = 0. Hence ∇ × F = 0 and F is irrotational.`
     },
     {
         subject: 'Physics',
         subCategory: 'Lasers',
         type: 'essay',
         maxMarks: 10,
-        questionText: 'Q6. One of the most used and safest lasers is the He-Ne laser. Discuss in detail the construction and working of He-Ne LASER. (CO1 - 10 Marks)',
-        standardAnswer: `1. Construction:
-- Discharge tube made of fused quartz filled with Helium (He) and Neon (Ne) in 10:1 ratio at total pressure of ~1 torr.
-- Resonant optical cavity formed by two parallel dielectric mirrors (one 100% reflective, one 99% partially transmissive).
-- DC electrical discharge used for pumping.
+        questionText: 'Q6. One of the most used and safest lasers is the He-Ne laser. Discuss in detail the construction and working of He-Ne LASER. (10 Marks, CO1)',
+        standardAnswer: `Construction (4 marks)
+1. [1] A long, narrow glass discharge tube (about 30 to 80 cm long, a few mm in bore) acts as the active medium container.
+2. [1] It is filled with a mixture of helium and neon in the ratio about 10 : 1 at a low total pressure (about 1 torr). Neon is the active (lasing) atom and helium is the pumping (helper) atom.
+3. [1] Two electrodes (anode and cathode) at the ends are connected to a high-voltage DC supply (about 1 to 2 kV) to produce the electric discharge, which is the pumping source.
+4. [1] Optical resonator: two parallel mirrors at the ends. One is fully reflecting (about 100 %) and the other partially transmitting (about 98 to 99 %), which provides feedback and the output. Brewster windows may be used to obtain polarised output.
 
-2. Working & Energy Transfer Mechanism:
-- Electrical discharge accelerates electrons, which collide with He atoms exciting them to metastable states 2^1S (20.61 eV) and 2^3S (19.81 eV).
-- Resonant Energy Transfer: Excited He atoms collide with ground-state Ne atoms, transferring energy non-radiatively to matching Ne levels (3s and 2s).
-- Population Inversion is created between Ne 3s / 2s levels and lower 2p levels.
-- Stimulated Emission: Transition from Ne 3s2 to 2p4 emits coherent red laser light at wavelength lambda = 632.8 nm (0.6328 um).
-- De-excitation: Atoms in 2p undergo spontaneous decay to 1s, followed by non-radiative collision with tube walls to return to ground state.`
+Working (6 marks)
+5. [1] The discharge accelerates electrons, which collide with He atoms and excite them to the metastable states 2³S (19.8 eV) and 2¹S (20.6 eV). These states are long-lived, so He atoms accumulate there.
+6. [1] The Ne levels 2s (about 20.66 eV) and 3s (about 20.66 eV and nearby) have almost the same energy as the He metastable states. He atoms transfer energy to Ne by resonant (inelastic) collisions, with the helium returning to the ground state.
+7. [1] Population inversion: the Ne 3s and 2s levels become highly populated while the lower 3p and 2p levels remain nearly empty. Pumping is therefore indirect (collisional energy transfer).
+8. [1] Lasing transitions: 3s → 2p gives the red line at 632.8 nm (the most used). 3s → 3p gives 3.39 μm and 2s → 2p gives 1.15 μm (both infrared).
+9. [1] Neon atoms in the lower level decay quickly by spontaneous emission to the 1s level, and then to the ground state by collisions with the tube wall. This keeps the lower level empty and the inversion maintained.
+10. [1] Photons emitted by stimulated emission travel back and forth between the mirrors and are amplified. The coherent, highly directional, monochromatic beam leaves through the partially reflecting mirror (typical power 1 to 50 mW, continuous wave).`
     },
     {
         subject: 'Physics',
         subCategory: 'Quantum Mechanics',
         type: 'essay',
         maxMarks: 10,
-        questionText: 'Q7. State the uncertainty principle. Write its different forms (in terms of different conjugate variables) and describe any one application of the uncertainty principle. (CO3 - 10 Marks)',
-        standardAnswer: `1. Heisenberg’s Uncertainty Principle Statement:
-It is fundamentally impossible to simultaneously determine both the exact position and linear momentum of a microscopic particle with arbitrary precision.
+        questionText: 'Q7. State the uncertainty principle. Write its different forms (in terms of different conjugate variables) and describe any one application of the uncertainty principle. (3+3+4 = 10 Marks, CO3)',
+        standardAnswer: `Statement (3 marks)
+1. [1] It is impossible to determine simultaneously and with perfect accuracy both members of a pair of conjugate (canonically related) variables of a particle.
+2. [1] The product of the uncertainties of the two variables can never be smaller than a fixed lower limit of the order of h/4π (that is, ħ/2).
+3. [1] The origin lies in the wave nature of matter (the wave packet) and the disturbance caused by the act of measurement, not in the imperfection of the instruments.
 
-2. Conjugate Variable Forms:
-- Position & Linear Momentum: Delta x * Delta p_x >= h_bar / 2 (or h / (4*pi))
-- Energy & Time: Delta E * Delta t >= h_bar / 2
-- Angular Position & Angular Momentum: Delta theta * Delta L_z >= h_bar / 2
+Different forms (3 marks)
+4. [1] Position and momentum: Δx · Δp ≥ ħ/2 (≈ h/4π).
+5. [1] Energy and time: ΔE · Δt ≥ ħ/2.
+6. [1] Angular momentum and angular position: ΔL · Δθ ≥ ħ/2. (Number and phase, ΔN · Δφ ≥ ½, is also acceptable.)
 
-3. Application (Non-existence of electron in nucleus):
-- Nuclear radius R ~ 1e-14 m => Uncertainty in position Delta x = 1e-14 m.
-- Minimum momentum uncertainty: Delta p >= h_bar / (2 * Delta x) = 1.054e-34 / (2 * 1e-14) = 5.27e-21 kg.m/s.
-- Relativistic Energy E ~ c * Delta p = (3e8 * 5.27e-21) = 1.58e-12 J = 9.8 MeV.
-- Since beta-decay electrons possess energies < 4 MeV, free electrons cannot reside inside the nucleus.`
+Any one application (4 marks)
+Application: non-existence of electrons inside the nucleus.
+7. [1] The nuclear radius is about 10⁻¹⁴ m, so if an electron were confined there, Δx ≈ 10⁻¹⁴ m.
+8. [1] Then Δp ≥ ħ/(2Δx) ≈ 1.05×10⁻³⁴ / (2×10⁻¹⁴) ≈ 5.3×10⁻²¹ kg·m/s.
+9. [1] The corresponding kinetic energy (relativistic, E ≈ pc) is about 5.3×10⁻²¹ × 3×10⁸ ≈ 1.6×10⁻¹² J ≈ 10 MeV.
+10. [1] The beta-particle energies observed from nuclei are only 2 to 3 MeV, much lower than 10 MeV. So electrons cannot be permanently present inside the nucleus; they are created at the time of beta decay. (Accepted alternatives: natural line width, zero-point energy of the harmonic oscillator, or the minimum energy of a particle in a box, each credited with the same four steps.)`
     },
     {
         subject: 'Physics',
         subCategory: 'Crystallography',
         type: 'essay',
         maxMarks: 10,
-        questionText: 'Q8. What is Atomic Packing Fraction (APF)? Obtain APF for FCC crystal. (CO4 - 10 Marks)',
-        standardAnswer: `1. Definition:
-Atomic Packing Fraction (APF) is the ratio of the volume occupied by all constituent atoms in a unit cell to the total volume of the unit cell:
-APF = (N_atoms * V_atom) / V_unit_cell.
-
-2. FCC Unit Cell Derivation:
-- Effective number of atoms per FCC cell: N = (8 corner atoms * 1/8) + (6 face-centered atoms * 1/2) = 1 + 3 = 4 atoms.
-- Relation between lattice parameter 'a' and atomic radius 'r':
-Along the face diagonal: 4r = a * sqrt(2) => a = 4r / sqrt(2) = 2 * sqrt(2) * r.
-- Volume of Atoms: V_atoms = 4 * (4/3 * pi * r^3) = (16/3) * pi * r^3.
-- Volume of Unit Cell: V_cell = a^3 = (2 * sqrt(2) * r)^3 = 16 * sqrt(2) * r^3.
-- APF Calculation:
-APF = [ (16/3) * pi * r^3 ] / [ 16 * sqrt(2) * r^3 ] = pi / (3 * sqrt(2)) = 3.14159 / 4.2426 = 0.7404 (74%).`
+        questionText: 'Q8. What is Atomic Packing Fraction (APF)? Obtain APF for FCC crystal. (10 Marks, CO4)',
+        standardAnswer: `1. [1] Definition: APF is the ratio of the volume occupied by the atoms (hard spheres) in a unit cell to the total volume of the unit cell.
+2. [1] Formula: APF = (number of atoms per cell × volume of one atom) / (volume of unit cell).
+3. [1] In FCC, atoms are located at the 8 corners (each shared by 8 cells) and at the 6 face centres (each shared by 2 cells).
+4. [1] Effective number of atoms per cell: n = 8 × (1/8) + 6 × (1/2) = 1 + 3 = 4.
+5. [1] Atoms touch along the face diagonal. A diagram of the face of the cube showing the touching atoms should be drawn.
+6. [1] Face diagonal = √2·a = 4r (the corner atom contributes r, the face-centre atom 2r, and the other corner r).
+7. [1] Therefore a = 4r/√2 = 2√2·r.
+8. [1] Volume of the atoms in the cell = 4 × (4/3)πr³ = (16/3)πr³.
+9. [1] Volume of the unit cell = a³ = (2√2·r)³ = 16√2·r³.
+10. [1] APF = (16πr³/3) / (16√2·r³) = π/(3√2) ≈ 0.74, so 74 % of the volume is filled and 26 % is void (FCC is a close-packed structure).`
     },
     {
         subject: 'Physics',
         subCategory: 'Electrodynamics',
         type: 'essay',
         maxMarks: 10,
-        questionText: 'Q9. What is displacement current? Derive the modified Ampere’s law with Maxwell’s correction to it. OR Derive the current continuity equation and discuss relaxation time. (CO2 - 10 Marks)',
-        standardAnswer: `Option 1: Displacement Current & Maxwell-Ampere Law:
-1. Displacement Current: Maxwell hypothesized that a time-varying electric flux produces an effective magnetic field, represented by displacement current density: J_d = epsilon_0 * (dE / dt).
-2. Derivation:
-- Original Ampere's Law: curl B = mu_0 * J. Taking divergence: div(curl B) = 0 => div(J) = 0 (only valid for steady currents).
-- From Continuity Equation: div J = - d(rho) / dt.
-- Using Gauss's Law: div E = rho / epsilon_0 => rho = epsilon_0 * div E.
-- Differentiating: d(rho)/dt = epsilon_0 * div(dE/dt) => div J + div(epsilon_0 * dE/dt) = 0.
-- Defining Total Current: J_total = J + epsilon_0 * (dE/dt).
-- Modified Ampere's Law: curl B = mu_0 * (J + epsilon_0 * dE/dt).
+        questionText: 'Q9. The concept of displacement current is an important one in Electrodynamics. What is displacement current? Derive the modified Ampere’s law with Maxwell’s correction to it. (4+6 = 10 Marks, CO2) \nOR \nDerive the current continuity equation and discuss how relaxation time influences the establishment of steady-state current flow in conductive materials. (10 Marks)',
+        standardAnswer: `Main question: Displacement current and Maxwell's correction (10 marks)
+What is displacement current? (4 marks)
+1. [1] Displacement current is the current-like term I_d = ε₀ dΦ_E/dt (density J_d = ∂D/∂t = ε₀ ∂E/∂t) that arises from a time-varying electric field.
+2. [1] It is not due to the flow of charges; it exists even in vacuum or in a dielectric where no free charge moves.
+3. [1] Example: when a capacitor is charged, the conduction current flows in the wires but not across the gap between the plates. The changing electric field between the plates carries the displacement current, which equals the conduction current and makes the total current continuous.
+4. [1] It produces a magnetic field just like a conduction current. It was introduced by Maxwell to remove the inconsistency in Ampère's law (see below).
+Derivation of the modified Ampère's law (6 marks)
+5. [1] Ampère's law in differential form: ∇ × B = μ₀J.
+6. [1] Take the divergence of both sides: ∇·(∇ × B) = 0, which gives μ₀(∇·J) = 0, so ∇·J = 0. This contradicts the continuity equation ∇·J = −∂ρ/∂t for time-varying fields.
+7. [1] Use Gauss's law ∇·E = ρ/ε₀, so ρ = ε₀∇·E and ∂ρ/∂t = ε₀ ∇·(∂E/∂t).
+8. [1] Substitute into the continuity equation: ∇·J = −ε₀ ∇·(∂E/∂t), which means ∇·(J + ε₀ ∂E/∂t) = 0.
+9. [1] Maxwell's correction: replace J by J + J_d, with J_d = ε₀ ∂E/∂t. The modified law is ∇ × B = μ₀(J + ε₀ ∂E/∂t).
+10. [1] Integral form: ∮B·dl = μ₀(I_c + ε₀ dΦ_E/dt) = μ₀(I_c + I_d). The divergence is now consistent with the continuity equation.
 
-Option 2 (OR): Continuity Equation & Relaxation Time:
-- Continuity Equation: div J + d(rho)/dt = 0.
-- Using Ohm's Law J = sigma * E and Gauss's law div E = rho / epsilon:
-sigma * (rho / epsilon) + d(rho)/dt = 0 => d(rho)/dt + (sigma / epsilon) * rho = 0.
-- Solution: rho(t) = rho_0 * exp(-t / tau), where Relaxation Time tau = epsilon / sigma.`
+OR: Current continuity equation and relaxation time (10 marks)
+1. [1] Consider a closed surface S enclosing volume V with charge q = ∫ρ dV.
+2. [1] The current flowing out through S is ∮J·dA, which equals the rate of decrease of charge inside: ∮J·dA = −dq/dt = −(d/dt)∫ρ dV.
+3. [1] Apply the divergence theorem: ∮J·dA = ∫(∇·J) dV.
+4. [1] Hence ∫(∇·J) dV = −∫(∂ρ/∂t) dV for any volume.
+5. [1] Continuity equation: ∇·J + ∂ρ/∂t = 0 (the statement of charge conservation). For steady current, ∂ρ/∂t = 0, so ∇·J = 0.
+6. [1] For a conductor, Ohm's law gives J = σE, and Gauss's law gives ∇·E = ρ/ε. Then ∇·J = σρ/ε.
+7. [1] Substituting: ∂ρ/∂t + (σ/ε)ρ = 0.
+8. [1] Solution: ρ(t) = ρ₀ e^(−t/τ), with relaxation time τ = ε/σ. This is the time for the free charge density to fall to 1/e of its initial value.
+9. [1] For good conductors τ is extremely small (about 10⁻¹⁹ to 10⁻¹⁸ s for copper), so any charge imbalance vanishes almost instantly, moving to the surface. The interior stays neutral and the current is steady (∇·J = 0).
+10. [1] For poor conductors or insulators τ is large (seconds to hours), so charge decays slowly and steady-state flow takes a long time to establish. Steady state is reached after a few multiples of τ.`
     },
     {
         subject: 'Physics',
         subCategory: 'Semiconductor Optics & X-Ray Diffraction',
         type: 'essay',
         maxMarks: 20,
-        questionText: 'Q10. Attempt both parts: (a) Describe the construction and working of a solar cell, explaining the IV characteristics (10 Marks). (b) A first order reflection from the plane of NaCl is obtained at an angle 2*theta = 20 deg with incident beam. If d_121 = 2.82 Angstroms, calculate the wavelength of X-ray used and lattice parameter (10 Marks). (CO3 - 10+10=20 Marks)',
-        standardAnswer: `Part (a) Solar Cell Construction, Working & I-V Curve:
-1. Construction: P-N junction photodiode with thin, heavily doped n-layer on top, thick p-substrate below, front metal finger contacts for light penetration, and back ohmic contact.
-2. Working Mechanism:
-- Absorption of solar photons (h*nu > E_g) generates electron-hole pairs in the depletion region.
-- Built-in electric field sweeps electrons to n-side and holes to p-side, producing photo-voltage across open terminals.
-3. I-V Characteristics: Operates in 4th quadrant with Open-Circuit Voltage (Voc) and Short-Circuit Current (Isc). Fill Factor FF = (Vmp * Imp) / (Voc * Isc).
+        questionText: 'Q10. Attempt both parts:\na. Describe the construction and working of a solar cell, explaining the IV characteristics. (10 Marks, CO3)\nb. A first order reflection from the plane of NaCl is obtained at an angle 2θ = 20° with the incident beam. If d_121 = 2.82 Å, calculate the wavelength of the X-ray used and also determine the lattice parameter. (10 Marks, CO3)',
+        standardAnswer: `(a) Construction, working and I-V characteristics of a solar cell (10 marks)
+1. [1] A solar cell is a p-n junction diode that converts light energy directly into electrical energy (photovoltaic effect).
+2. [1] Construction: a thin, heavily doped n-type layer (emitter, about 0.3 to 1 μm) sits over a thicker p-type silicon base, forming a p-n junction with a depletion region and a built-in electric field.
+3. [1] A metal grid contact on top (so light can enter) and a full metal back contact collect the current. An anti-reflection coating (e.g. SiNx) on top reduces reflection losses. A labelled diagram should be drawn.
+4. [1] Working: photons with energy hν ≥ Eg (1.1 eV for Si) are absorbed in or near the depletion region and generate electron-hole pairs.
+5. [1] The built-in field sweeps electrons towards the n-side and holes towards the p-side, producing a photovoltage across the junction (open-circuit voltage).
+6. [1] When an external load is connected, the photogenerated carriers flow through it as the photocurrent I_L, opposite in direction to the diode forward current.
+7. [1] I-V relation: I = I_L − I₀[exp(eV/ηkT) − 1], where I₀ is the reverse saturation current. The curve lies in the fourth quadrant (sketch it with axes labelled).
+8. [1] Short-circuit current I_sc = I_L (at V = 0) and open-circuit voltage V_oc = (ηkT/e) ln(I_L/I₀ + 1) (at I = 0) are marked on the curve.
+9. [1] The maximum power point (V_m, I_m) gives P_max = V_m·I_m.
+10. [1] Fill factor FF = V_m·I_m / (V_oc·I_sc) and efficiency η = P_max/P_in. Under illumination the curve shifts down in proportion to the light intensity; in the dark it is the ordinary diode curve.
 
-Part (b) Bragg Diffraction Calculations:
-Given: Order n = 1, Glancing angle 2*theta = 20 deg => theta = 10 deg, Interplanar spacing d = 2.82 Angstroms = 2.82e-10 m.
-1. X-Ray Wavelength (Bragg's Law):
-2 * d * sin(theta) = n * lambda
-lambda = 2 * (2.82 Angstroms) * sin(10 deg) = 2 * 2.82 * 0.17365 = 0.9794 Angstroms (0.09794 nm).
-2. Lattice Parameter 'a':
-For cubic NaCl crystal: d_hkl = a / sqrt(h^2 + k^2 + l^2)
-For plane (1 2 1): sqrt(1^2 + 2^2 + 1^2) = sqrt(6) = 2.4495
-a = d_121 * sqrt(6) = 2.82 * 2.4495 = 6.907 Angstroms (0.6907 nm).`
+(b) Wavelength of the X-ray and lattice parameter (10 marks)
+11. [1] Bragg's law: 2d sinθ = nλ.
+12. [1] The beam is deflected by 2θ = 20°, so the glancing angle is θ = 10°.
+13. [1] First order: n = 1. Given d₁₂₁ = 2.82 Å.
+14. [1] Rearrange: λ = 2d sinθ / n.
+15. [1] Substitute: λ = 2 × 2.82 × sin 10° = 2 × 2.82 × 0.1736.
+16. [1] Wavelength λ ≈ 0.98 Å (about 9.8×10⁻¹¹ m).
+17. [1] For a cubic crystal d_hkl = a / √(h² + k² + l²).
+18. [1] For (121): h² + k² + l² = 1 + 4 + 1 = 6, so d₁₂₁ = a/√6.
+19. [1] Rearrange: a = d₁₂₁ × √6 = 2.82 × 2.449.
+20. [1] Lattice parameter a ≈ 6.91 Å. (Use the data as given. Marks are for method and values consistent with d₁₂₁ = 2.82 Å, even though the standard NaCl value is 5.64 Å.)`
     },
     {
         subject: 'Physics',
         subCategory: 'Dielectrics & Electromagnetic Waves',
         type: 'essay',
         maxMarks: 20,
-        questionText: 'Q11. Attempt both parts: (a) Show that the relation between dielectric constant and polarizability is given by Clausius-Mossotti relation (10 Marks). (b) Assuming all energy from a 1000 W lamp is radiated uniformly, calculate average values of intensities of electric and magnetic fields at a distance of 2m (10 Marks). (CO1+CO3 - 10+10=20 Marks) \nOR \n(a) Differentiate polar and non-polar dielectrics and types of polarization. (b) If Na solid has cubical symmetry, atomic weight 23, density 1.83 g/cm^3, alpha_e = 2.39e-40 F-m^2, find its relative dielectric constant.',
-        standardAnswer: `Part (a) Clausius-Mossotti Relation Derivation:
-1. Local Field in Dielectric: E_local = E + P / (3 * epsilon_0).
-2. Polarization: P = N * alpha * E_local = N * alpha * [ E + P / (3 * epsilon_0) ].
-3. Rearranging: P * [ 1 - (N * alpha) / (3 * epsilon_0) ] = N * alpha * E.
-4. Using D = epsilon_0 * epsilon_r * E = epsilon_0 * E + P => P = epsilon_0 * (epsilon_r - 1) * E.
-5. Equating and simplifying yields Clausius-Mossotti equation:
-(epsilon_r - 1) / (epsilon_r + 2) = (N * alpha) / (3 * epsilon_0).
+        questionText: 'Q11. Attempt either the main question or the OR option:\na. Show that the relation between dielectric constant, a macroscopic parameter, and polarizability, a microscopic parameter, is given by ε_r = (1 + 2Nα/3ε₀) / (1 - Nα/3ε₀) where the symbols have their usual meanings. (10 Marks, CO1)\nb. Assuming that all the energy from a 1000 W lamp is radiated uniformly, Calculate the average values of the intensities of electric and magnetic fields of radiation at a distance of 2m from the lamp. (10 Marks, CO3)\nOR\na. Analyze and differentiate between polar and non-polar dielectric materials. Explain the different kinds of polarizations that can take place within a given dielectric material. (10 Marks, CO1)\nb. The atomic weight and density of Na are 23 and 1.83 gm/cm³ respectively. The electronic polarizability of the atoms is 2.39 × 10⁻⁴⁰ F-m². If Na solid has cubical symmetry, what will be its relative dielectric constant. (10 Marks, CO3)',
+        standardAnswer: `Main question (20 marks)
+(a) Relation between dielectric constant and polarisability (10 marks)
+1. [1] Polarisation P is the dipole moment per unit volume: P = Np, where N is the number of atoms per unit volume and the induced dipole moment is p = αE_i.
+2. [1] So P = NαE_i, where E_i is the internal (local) field acting on an atom. It is not the same as the applied field E.
+3. [1] Lorentz internal field: E_i = E₀ + E₁ + E₂ + E₃, where E₀ is the applied field, E₁ = −P/ε₀ is the depolarising field of the outer surfaces (E₀ + E₁ = E, the macroscopic field), E₂ = P/(3ε₀) is the field from the charges on the surface of the imaginary Lorentz sphere, and E₃ = 0 for a cubic lattice (dipoles inside the sphere cancel).
+4. [1] For a cubic lattice (or isotropic medium): E_i = E + P/(3ε₀).
+5. [1] Substitute in P = NαE_i: P = Nα(E + P/3ε₀).
+6. [1] Rearrange: P(1 − Nα/3ε₀) = NαE, so P = NαE / (1 − Nα/3ε₀).
+7. [1] By definition of susceptibility, P = ε₀(ε_r − 1)E.
+8. [1] Equate the two: ε₀(ε_r − 1) = Nα / (1 − Nα/3ε₀).
+9. [1] Then ε_r − 1 = (Nα/ε₀) / (1 − Nα/3ε₀) and ε_r = [1 − Nα/3ε₀ + Nα/ε₀] / (1 − Nα/3ε₀).
+10. [1] Simplifying: ε_r = (1 + 2Nα/3ε₀) / (1 − Nα/3ε₀), the Clausius-Mossotti relation, linking macroscopic ε_r to microscopic α.
 
-Part (b) Electromagnetic Radiation from 1000 W Lamp:
-Given: Power P = 1000 W, Distance r = 2 m.
-1. Intensity (Poynting Vector Magnitude):
-I = Power / (4 * pi * r^2) = 1000 / (4 * 3.1416 * 4) = 1000 / 50.265 = 19.894 W/m^2.
-2. Electric Field Intensity E_rms:
-I = c * epsilon_0 * E_rms^2 => E_rms = sqrt( I / (c * epsilon_0) )
-E_rms = sqrt( 19.894 / (3e8 * 8.85e-12) ) = sqrt( 19.894 / 2.655e-3 ) = sqrt(7493) = 86.56 V/m.
-3. Magnetic Field Intensity H_rms:
-H_rms = E_rms / eta_0 = 86.56 / 377 = 0.2296 A/m.`
+(b) Field intensities at 2 m from a 1000 W lamp (10 marks)
+11. [1] Radiation is uniform in all directions, so the intensity at r is I = P/(4πr²).
+12. [1] I = 1000 / (4π × 2²) = 1000 / 50.27 ≈ 19.9 W/m².
+13. [1] The average intensity of an EM wave is I = ½ε₀cE₀² = ε₀cE_rms².
+14. [1] Electric field: E_rms = √(I/ε₀c) = √(19.9 / (8.85×10⁻¹² × 3×10⁸)) = √(19.9/2.655×10⁻³) ≈ 86.6 V/m.
+15. [1] The corresponding peak value is E₀ = √2 × 86.6 ≈ 122 V/m.
+16. [1] Magnetic field: B = E/c, so B_rms = 86.6 / (3×10⁸).
+17. [1] B_rms ≈ 2.89×10⁻⁷ T.
+18. [1] The peak value is B₀ ≈ 4.08×10⁻⁷ T.
+19. [1] Check: I = E_rms·B_rms/μ₀ = 86.6 × 2.89×10⁻⁷ / (4π×10⁻⁷) ≈ 19.9 W/m². (Either rms or peak values are accepted if stated clearly.)
+20. [1] Units stated correctly (E in V/m, B in tesla) and the final answers clearly stated.
+
+OR option (20 marks)
+(a) Polar and non-polar dielectrics, and kinds of polarisation (10 marks)
+1. [1] Non-polar dielectrics: molecules have their positive and negative charge centres coinciding, so there is no permanent dipole moment (e.g. H₂, N₂, CH₄, Ar).
+2. [1] In a non-polar dielectric, dipoles are induced only when an electric field is applied, and they vanish when the field is removed.
+3. [1] Polar dielectrics: molecules have non-coinciding charge centres, so they carry a permanent dipole moment (e.g. H₂O, HCl, NH₃, CO).
+4. [1] Without a field the permanent dipoles are randomly oriented by thermal motion and the net moment is zero. In a field they tend to align.
+5. [1] Difference: polarisation of a polar dielectric depends on temperature (decreasing as T rises, Curie law), while that of a non-polar dielectric is practically independent of temperature. Polar dielectrics also have much larger dielectric constants.
+6. [1] Electronic polarisation: displacement of the electron cloud relative to the nucleus. It occurs in all dielectrics and is independent of temperature, with α_e = 4πε₀R³ (frequency range up to about 10¹⁵ Hz).
+7. [1] Ionic polarisation: relative displacement of positive and negative ions in ionic crystals (e.g. NaCl). It is independent of temperature (up to about 10¹³ Hz).
+8. [1] Orientational (dipolar) polarisation: alignment of permanent dipoles along the field in polar dielectrics. It depends on temperature (α_o = p²/3kT) and exists at low frequencies (up to about 10⁶ Hz).
+9. [1] Space-charge (interfacial) polarisation: accumulation of charges at interfaces, grain boundaries or electrodes in non-homogeneous dielectrics. It is seen at low frequencies (up to about 10³ Hz).
+10. [1] Total polarisability α = α_e + α_i + α_o + (space charge). Diagrams of each, and the fall in the contributions as frequency rises, should be given.
+
+(b) Dielectric constant of sodium (10 marks)
+11. [1] Number of atoms per unit volume: N = ρN_A/M.
+12. [1] ρ = 1.83 g/cm³ = 1.83×10³ kg/m³ (or work in g/cm³ and convert), M = 23 g/mol.
+13. [1] N = (1.83 × 6.023×10²³)/23 = 4.79×10²² per cm³.
+14. [1] Convert to SI: N = 4.79×10²⁸ atoms/m³.
+15. [1] For a cubic lattice, use the Clausius-Mossotti relation (ε_r − 1)/(ε_r + 2) = Nα/3ε₀, or equivalently ε_r = (1 + 2Nα/3ε₀)/(1 − Nα/3ε₀).
+16. [1] Compute Nα = 4.79×10²⁸ × 2.39×10⁻⁴⁰ = 1.145×10⁻¹¹ F/m.
+17. [1] Compute 3ε₀ = 3 × 8.85×10⁻¹² = 2.655×10⁻¹¹ F/m.
+18. [1] Nα/3ε₀ = 1.145×10⁻¹¹ / 2.655×10⁻¹¹ ≈ 0.431.
+19. [1] Substitute: ε_r = (1 + 2 × 0.431) / (1 − 0.431) = 1.862 / 0.569.
+20. [1] Relative dielectric constant ε_r ≈ 3.28 (dimensionless).`
     }
 ];
 
@@ -837,7 +877,7 @@ async function seedBitCurriculum(passedTeacherId) {
                     if (linkExisting.length === 0) {
                         await execute(
                             `INSERT INTO assignment_questions (assignment_id, question_id, max_points)
-                             VALUES ($1, $2, 100)`,
+                             VALUES ($1, $2, $3)`,
                             [assign.id, q.id, 100]
                         );
                     }

@@ -173,13 +173,19 @@ const initDb = async () => {
     }
 };
 
+const formatSqliteSql = (sql) => {
+    if (!sql || typeof sql !== 'string') return sql;
+    return sql.replace(/\$([0-9]+)/g, '?');
+};
+
 const query = async (text, params) => {
     if (dbType === 'postgres') {
         const res = await dbInstance.query(text, params);
         return res.rows;
     } else {
+        const sqliteSql = formatSqliteSql(text);
         return new Promise((resolve, reject) => {
-            dbInstance.all(text, params, (err, rows) => {
+            dbInstance.all(sqliteSql, params, (err, rows) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -195,8 +201,9 @@ const execute = async (text, params) => {
         const res = await dbInstance.query(text, params);
         return res;
     } else {
+        const sqliteSql = formatSqliteSql(text);
         return new Promise((resolve, reject) => {
-            dbInstance.run(text, params, function (err) {
+            dbInstance.run(sqliteSql, params, function (err) {
                 if (err) {
                     reject(err);
                 } else {
