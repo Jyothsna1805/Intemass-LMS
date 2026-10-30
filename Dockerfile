@@ -1,13 +1,15 @@
-# Use Node 18 Bullseye which is Debian-based and easy for installing APT packages
-FROM node:18-bullseye
+# Use Node 22 (LTS) Bullseye with patched TLS / certificate stores (Render Security Update October 2026)
+FROM node:22-bullseye
 
-# Install Python 3, OpenCV dependencies, and Tesseract OCR engine
-RUN apt-get update && apt-get install -y \
+# Install ca-certificates (eMudhra CA revocation patch), Python 3, OpenCV dependencies, and Tesseract OCR engine
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     python3 \
     python3-pip \
     tesseract-ocr \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set directory

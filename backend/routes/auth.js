@@ -202,7 +202,11 @@ router.post('/login', async (req, res) => {
 
     } catch (error) {
         console.error("Login error:", error);
-        res.status(500).json({ error: 'Internal server error: ' + error.message });
+        let errorMsg = error.message;
+        if (errorMsg && (errorMsg.includes('tenant/user') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('not found'))) {
+            errorMsg = 'Supabase database is paused or unreachable. Please unpause/restore the project in your Supabase Dashboard, or set DB_TYPE=sqlite in .env.';
+        }
+        res.status(500).json({ error: 'Internal server error: ' + errorMsg });
     }
 });
 
