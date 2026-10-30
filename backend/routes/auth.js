@@ -172,7 +172,7 @@ router.post('/login', async (req, res) => {
 
         let profile = null;
         if (process.env.DB_TYPE === 'postgres') {
-            const pRes = await query("SELECT full_name, institution, school_id, roll_number, class_name FROM profiles WHERE user_id = $1", [user.id]);
+            const pRes = await query("SELECT * FROM profiles WHERE user_id = $1", [user.id]);
             if (pRes.length > 0) profile = pRes[0];
         } else {
             const pRes = await query("SELECT full_name, institution, school_id, roll_number, class_name FROM profiles WHERE user_id = ?", [user.id]);
@@ -181,7 +181,12 @@ router.post('/login', async (req, res) => {
 
         // Determine user's school
         const activeSchoolId = user.school_id || (profile && profile.school_id) || defaultSchoolId;
-        const schoolRows = await query("SELECT id, name, code FROM schools WHERE id = $1", [activeSchoolId]);
+        let schoolRows = [];
+        try {
+            schoolRows = await query("SELECT id, name, code FROM schools WHERE id = $1", [activeSchoolId]);
+        } catch (sErr) {
+            console.warn("Could not query schools table:", sErr.message);
+        }
         const school = schoolRows[0] || { id: activeSchoolId, name: defaultInstitution, code: isStj ? 'STJ-01' : 'MF-SG' };
 
         const payload = {

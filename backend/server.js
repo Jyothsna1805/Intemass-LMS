@@ -1,10 +1,16 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const { initDb } = require('./db/database');
 const path = require('path');
-
+const dotenv = require('dotenv');
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config();
+
+if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = 'super_secret_jwt_key_for_intemass';
+}
+
+const { initDb } = require('./db/database');
 
 const app = express();
 

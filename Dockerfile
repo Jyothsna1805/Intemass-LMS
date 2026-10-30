@@ -1,13 +1,17 @@
-# Use Node 22 (LTS) Bullseye with patched TLS / certificate stores (Render Security Update October 2026)
+# Use Node 22 (LTS) with patched TLS / certificate stores (Render Security Update October 2026)
 FROM node:22-bullseye
 
+# Environment flags for non-interactive apt and PEP 668 compatibility
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
 # Install ca-certificates (eMudhra CA revocation patch), Python 3, OpenCV dependencies, and Tesseract OCR engine
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     ca-certificates \
     python3 \
     python3-pip \
     tesseract-ocr \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -20,8 +24,6 @@ COPY requirements.txt ./
 
 # Upgrade pip and wheel to prevent building Spacy/Blis from source (which causes 20-minute timeouts)
 RUN pip3 install --upgrade pip setuptools wheel
-
-# Install CPU-only PyTorch first to prevent Railway out-of-memory errors (2.5GB -> 200MB)
 RUN pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip3 install --no-cache-dir -r requirements.txt
 

@@ -49,6 +49,34 @@ const initDb = async () => {
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS reassessment_status VARCHAR(20) DEFAULT \'none\'');
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS reassessment_request TEXT');
                 await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS reassessment_teacher_comment TEXT');
+
+                // Multi-tenant school migrations for Postgres
+                await dbInstance.query(`
+                    CREATE TABLE IF NOT EXISTS schools (
+                        id TEXT PRIMARY KEY,
+                        name VARCHAR(200) NOT NULL,
+                        code VARCHAR(50) UNIQUE NOT NULL,
+                        address TEXT,
+                        contact_email VARCHAR(255),
+                        logo_url VARCHAR(500),
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                `);
+                await dbInstance.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id TEXT');
+                await dbInstance.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS school_id TEXT');
+                await dbInstance.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS class_name TEXT');
+                await dbInstance.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS roll_number TEXT');
+                await dbInstance.query('ALTER TABLE assignments ADD COLUMN IF NOT EXISTS school_id TEXT');
+                await dbInstance.query('ALTER TABLE submissions ADD COLUMN IF NOT EXISTS school_id TEXT');
+
+                await dbInstance.query(`
+                    INSERT INTO schools (id, name, code, address, contact_email) VALUES 
+                    ('sch-mf-001', 'MegaForte Academy Singapore', 'MF-SG', '10 Collyer Quay, Ocean Financial Centre, Singapore 049315', 'admin@megaforte.sg'),
+                    ('sch-stj-002', 'St. Jude STEM Institute', 'STJ-01', '45 Science Park Rd, The Capricorn, Singapore 117528', 'office@stjude-stem.edu')
+                    ON CONFLICT (id) DO NOTHING
+                `);
+                await dbInstance.query("UPDATE users SET school_id = 'sch-mf-001' WHERE school_id IS NULL");
+                await dbInstance.query("UPDATE profiles SET school_id = 'sch-mf-001' WHERE school_id IS NULL");
             } catch (err) {
                 console.error("Error adding columns:", err);
             }
