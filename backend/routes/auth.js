@@ -7,6 +7,39 @@ const crypto = require('crypto'); // For generating UUIDs if sqlite
 
 const generateId = () => crypto.randomUUID();
 
+let migratedSchoolColumns = false;
+async function ensureSchoolColumns() {
+    if (migratedSchoolColumns || process.env.DB_TYPE !== 'postgres') return;
+    try {
+        await execute(`
+            CREATE TABLE IF NOT EXISTS schools (
+                id TEXT PRIMARY KEY,
+                name VARCHAR(200) NOT NULL,
+                code VARCHAR(50) UNIQUE NOT NULL,
+                address TEXT,
+                contact_email VARCHAR(255),
+                logo_url VARCHAR(500),
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        `);
+        await execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id TEXT");
+        await execute("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS school_id TEXT");
+        await execute("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS class_name TEXT");
+        await execute("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS roll_number TEXT");
+        await execute("ALTER TABLE assignments ADD COLUMN IF NOT EXISTS school_id TEXT");
+        await execute("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS school_id TEXT");
+        await execute(`
+            INSERT INTO schools (id, name, code, address, contact_email) VALUES 
+            ('sch-mf-001', 'MegaForte Academy Singapore', 'MF-SG', '10 Collyer Quay, Ocean Financial Centre, Singapore 049315', 'admin@megaforte.sg'),
+            ('sch-stj-002', 'St. Jude STEM Institute', 'STJ-01', '45 Science Park Rd, The Capricorn, Singapore 117528', 'office@stjude-stem.edu')
+            ON CONFLICT (id) DO NOTHING;
+        `);
+        migratedSchoolColumns = true;
+    } catch (e) {
+        console.warn("Auto-migration in auth warning:", e.message);
+    }
+}
+
 // Registration Endpoint
 router.post('/register', async (req, res) => {
     const { email, password, role, fullName, institution } = req.body;
@@ -71,6 +104,9 @@ router.post('/login', async (req, res) => {
     }
 
     try {
+        // Ensure multi-tenant school columns exist before querying
+        await ensureSchoolColumns();
+
         let users;
         if (process.env.DB_TYPE === 'postgres') {
             users = await query("SELECT * FROM users WHERE email = $1", [normalizedEmail]);
@@ -106,20 +142,41 @@ router.post('/login', async (req, res) => {
             let newUserId;
 
             if (process.env.DB_TYPE === 'postgres') {
-                const result = await execute(
-                    "INSERT INTO users(email, password_hash, role, school_id) VALUES($1, $2, $3, $4) RETURNING id",
-                    [normalizedEmail, passwordHash, role, defaultSchoolId]
-                );
-                newUserId = result.rows[0].id;
-                await execute("INSERT INTO profiles(user_id, full_name, institution, school_id) VALUES($1, $2, $3, $4)", [newUserId, defaultFullName, defaultInstitution, defaultSchoolId]);
+                try {
+                    const result = await execute(
+                        "INSERT INTO users(email, password_hash, role, school_id) VALUES($1, $2, $3, $4) RETURNING id",
+                        [normalizedEmail, passwordHash, role, defaultSchoolId]
+                    );
+                    newUserId = result.rows[0].id;
+                    try {
+                        await execute("INSERT INTO profiles(user_id, full_name, institution, school_id) VALUES($1, $2, $3, $4)", [newUserId, defaultFullName, defaultInstitution, defaultSchoolId]);
+                    } catch {
+                        await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)", [newUserId, defaultFullName, defaultInstitution]);
+                    }
+                } catch {
+                    const result = await execute(
+                        "INSERT INTO users(email, password_hash, role) VALUES($1, $2, $3) RETURNING id",
+                        [normalizedEmail, passwordHash, role]
+                    );
+                    newUserId = result.rows[0].id;
+                    await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES($1, $2, $3)", [newUserId, defaultFullName, defaultInstitution]);
+                }
             } else {
                 newUserId = generateId();
-                await execute("INSERT INTO users(id, email, password_hash, role, school_id) VALUES(?, ?, ?, ?, ?)", [newUserId, normalizedEmail, passwordHash, role, defaultSchoolId]);
-                await execute("INSERT INTO profiles(user_id, full_name, institution, school_id) VALUES(?, ?, ?, ?)", [newUserId, defaultFullName, defaultInstitution, defaultSchoolId]);
+                try {
+                    await execute("INSERT INTO users(id, email, password_hash, role, school_id) VALUES(?, ?, ?, ?, ?)", [newUserId, normalizedEmail, passwordHash, role, defaultSchoolId]);
+                    await execute("INSERT INTO profiles(user_id, full_name, institution, school_id) VALUES(?, ?, ?, ?)", [newUserId, defaultFullName, defaultInstitution, defaultSchoolId]);
+                } catch {
+                    await execute("INSERT INTO users(id, email, password_hash, role) VALUES(?, ?, ?, ?)", [newUserId, normalizedEmail, passwordHash, role]);
+                    await execute("INSERT INTO profiles(user_id, full_name, institution) VALUES(?, ?, ?)", [newUserId, defaultFullName, defaultInstitution]);
+                }
             }
 
-            const schoolRows = await query("SELECT id, name, code FROM schools WHERE id = $1", [defaultSchoolId]);
-            const school = schoolRows[0] || { id: defaultSchoolId, name: defaultInstitution, code: isStj ? 'STJ-01' : 'MF-SG' };
+            let school = { id: defaultSchoolId, name: defaultInstitution, code: isStj ? 'STJ-01' : 'MF-SG' };
+            try {
+                const schoolRows = await query("SELECT id, name, code FROM schools WHERE id = $1", [defaultSchoolId]);
+                if (schoolRows && schoolRows.length > 0) school = schoolRows[0];
+            } catch (err) {}
 
             const payload = {
                 id: newUserId,
@@ -172,22 +229,26 @@ router.post('/login', async (req, res) => {
 
         let profile = null;
         if (process.env.DB_TYPE === 'postgres') {
-            const pRes = await query("SELECT * FROM profiles WHERE user_id = $1", [user.id]);
-            if (pRes.length > 0) profile = pRes[0];
+            try {
+                const pRes = await query("SELECT * FROM profiles WHERE user_id = $1", [user.id]);
+                if (pRes.length > 0) profile = pRes[0];
+            } catch {}
         } else {
-            const pRes = await query("SELECT full_name, institution, school_id, roll_number, class_name FROM profiles WHERE user_id = ?", [user.id]);
-            if (pRes.length > 0) profile = pRes[0];
+            try {
+                const pRes = await query("SELECT * FROM profiles WHERE user_id = ?", [user.id]);
+                if (pRes.length > 0) profile = pRes[0];
+            } catch {}
         }
 
         // Determine user's school
-        const activeSchoolId = user.school_id || (profile && profile.school_id) || defaultSchoolId;
-        let schoolRows = [];
+        const activeSchoolId = (user && user.school_id) || (profile && profile.school_id) || defaultSchoolId;
+        let school = { id: activeSchoolId, name: defaultInstitution, code: isStj ? 'STJ-01' : 'MF-SG' };
         try {
-            schoolRows = await query("SELECT id, name, code FROM schools WHERE id = $1", [activeSchoolId]);
+            const schoolRows = await query("SELECT id, name, code FROM schools WHERE id = $1", [activeSchoolId]);
+            if (schoolRows && schoolRows.length > 0) school = schoolRows[0];
         } catch (sErr) {
             console.warn("Could not query schools table:", sErr.message);
         }
-        const school = schoolRows[0] || { id: activeSchoolId, name: defaultInstitution, code: isStj ? 'STJ-01' : 'MF-SG' };
 
         const payload = {
             id: user.id,

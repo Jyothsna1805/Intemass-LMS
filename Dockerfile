@@ -2,7 +2,7 @@
 FROM node:18-bullseye
 
 # Install ca-certificates (eMudhra CA revocation patch), Python 3, OpenCV dependencies, and Tesseract OCR engine
-RUN apt-get update && apt-get install -y \
+RUN apt-get update --allow-releaseinfo-change && apt-get install -y --fix-missing \
     ca-certificates \
     python3 \
     python3-pip \
