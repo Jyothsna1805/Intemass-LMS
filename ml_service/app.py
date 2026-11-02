@@ -691,5 +691,28 @@ def grade():
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)})
 
+# Catch-all proxy to ensure Flask NEVER serves a 404 if Render routes to port 5000
+@app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+@app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+def fallback_proxy_to_node(path):
+    import requests
+    target_port = os.environ.get("PORT", "3000")
+    try:
+        url = f"http://127.0.0.1:{target_port}/{path}"
+        resp = requests.request(
+            method=request.method,
+            url=url,
+            headers={k: v for k, v in request.headers if k.lower() != 'host'},
+            data=request.get_data(),
+            cookies=request.cookies,
+            allow_redirects=False,
+            params=request.args
+        )
+        excluded_headers = ["content-encoding", "content-length", "transfer-encoding", "connection"]
+        headers = [(name, value) for (name, value) in resp.raw.headers.items() if name.lower() not in excluded_headers]
+        return (resp.content, resp.status_code, headers)
+    except Exception as e:
+        return f"Node backend starting up... ({e})", 503
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="127.0.0.1", port=5000)

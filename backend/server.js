@@ -43,6 +43,31 @@ app.use('/api/mass-feedback', massFeedbackRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/teacher-feedback', teacherFeedbackRoutes);
 
+// Optional proxy to Flask ML service running on localhost:5000
+app.post('/grade', (req, res) => {
+    const http = require('http');
+    const postData = JSON.stringify(req.body);
+    const options = {
+        hostname: '127.0.0.1',
+        port: 5000,
+        path: '/grade',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+        }
+    };
+    const pyReq = http.request(options, (pyRes) => {
+        res.status(pyRes.statusCode);
+        pyRes.pipe(res);
+    });
+    pyReq.on('error', (err) => {
+        res.status(502).json({ error: 'ML Service unavailable: ' + err.message });
+    });
+    pyReq.write(postData);
+    pyReq.end();
+});
+
 app.get('/api/health', async (req, res) => {
     try {
         const { query } = require('./db/database');
@@ -74,22 +99,26 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-const startServer = async () => {
-    try {
-        await initDb();
-        try {
-            const { seedBitCurriculum } = require('./seed_bit_questions');
-            await seedBitCurriculum();
-        } catch (seedErr) {
-            console.error('Non-critical BIT seeding warning:', seedErr);
-        }
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-        });
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
-}
+const startServer = () => {
+    // Start listening immediately on 0.0.0.0 so Render detects the service port instantly
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on port ${PORT}`);
+
+        // Run database initialization and seeds asynchronously in background
+        (async () => {
+            try {
+                await initDb();
+                try {
+                    const { seedBitCurriculum } = require('./seed_bit_questions');
+                    await seedBitCurriculum();
+                } catch (seedErr) {
+                    console.error('Non-critical BIT seeding warning:', seedErr);
+                }
+            } catch (error) {
+                console.error('Database initialization warning:', error);
+            }
+        })();
+    });
+};
 
 startServer();

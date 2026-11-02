@@ -45,6 +45,7 @@ ENV PYTHONUNBUFFERED=1
 RUN npm install
 
 # Expose standard production port
+ENV PORT=3000
 EXPOSE 3000
 
 # Start deployment natively (Run Python AI Server in background, then Node server)
