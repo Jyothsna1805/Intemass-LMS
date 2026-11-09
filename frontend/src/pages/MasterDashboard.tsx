@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { BookOpen, Users, FolderOpen, Bell, ShoppingCart } from 'lucide-react';
+import { BookOpen, Users, FolderOpen, Bell, ShoppingCart, BarChart2 } from 'lucide-react';
 
 interface Question { id: string; question_text: string; type: string; created_at: string; }
 interface User { id: string; email: string; role: string; full_name: string | null; institution: string | null; created_at: string; }
@@ -82,6 +82,12 @@ export default function MasterDashboard() {
                         </button>
                         <button onClick={() => setActiveTab('assignments')} className={`py-4 px-1 inline-flex items-center gap-2 border-b-4 font-bold uppercase tracking-wide text-xs ${activeTab === 'assignments' ? 'border-primary-600 text-primary-800' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}>
                             <FolderOpen size={16} /> Global Assignments
+                        </button>
+                        <button 
+                            onClick={() => navigate('/consolidated-reports')} 
+                            className="py-4 px-3 inline-flex items-center gap-2 border-b-4 border-transparent text-indigo-700 hover:text-indigo-900 hover:border-indigo-500 font-extrabold uppercase tracking-wide text-xs ml-auto bg-indigo-50/60 rounded-t-lg transition-all"
+                        >
+                            <BarChart2 size={16} /> Multi-Tenant School Reports
                         </button>
                     </div>
                 </div>
